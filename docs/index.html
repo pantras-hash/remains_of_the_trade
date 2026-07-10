@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Remains of Trade | Exposure Indices</title>
+  <meta name="description" content="Interactive country-level exposure indices for third-country spillovers from the U.S.-China trade war.">
+  <link rel="preconnect" href="https://cdn.plot.ly">
+  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="Home"><span class="brand-mark">RT</span><span class="brand-text">Remains of Trade</span></a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">Menu</button>
+      <div class="nav-links" id="navLinks">
+        <a href="#explorer">Explorer</a><a href="#rankings">Rankings</a><a href="#methodology">Methodology</a><a href="#downloads">Downloads</a><a class="button button-small" id="navPaperLink" href="paper/resettling_trade.pdf">Paper</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="eyebrow">U.S.-China trade war spillovers</p>
+        <h1 id="siteTitle">The Remains of Trade</h1>
+        <p class="lede" id="siteSubtitle">Interactive exposure indices for third-country spillovers from the U.S.-China trade war.</p>
+        <p class="authors" id="siteAuthors">Pol Antràs, Adrian Kulesza, and Andrea F. Presbitero</p>
+        <p class="notice" id="wipNotice">Work in progress. The paper and index values may be updated as the dataset and methodology evolve.</p>
+        <div class="hero-actions"><a class="button" href="#explorer">Open explorer</a><a class="button secondary" id="paperLink" href="paper/resettling_trade.pdf">Read paper</a><a class="button secondary" id="dataLink" href="data/measures_panel.csv" download>Download data</a></div>
+      </div>
+      <div class="hero-panel" aria-label="Index overview">
+        <div class="mini-grid">
+          <div><span class="metric" id="countryCount">-</span><span class="metric-label">economies</span></div>
+          <div><span class="metric" id="indexCount">-</span><span class="metric-label">indices</span></div>
+          <div><span class="metric">4</span><span class="metric-label">core channels</span></div>
+          <div><span class="metric" id="paperVersion">June 2026</span><span class="metric-label">paper version</span></div>
+        </div>
+        <div class="sparkline-card"><p class="small-title">Current default map</p><p id="defaultIndexText">Export Competition Index (ECI)</p></div>
+      </div>
+    </section>
+
+    <section class="section shell" id="explorer">
+      <div class="section-heading"><p class="eyebrow">Interactive atlas</p><h2>Explore exposure by country and index</h2><p>Choose an index, hover over the map, or click/search for a country to see its value, rank, and percentile in the cross-country distribution.</p></div>
+      <div class="control-card">
+        <div class="control-group grow"><label for="indexSelect">Index</label><select id="indexSelect"></select></div>
+        <div class="control-group"><label for="countrySelect">Country</label><select id="countrySelect"></select></div>
+        <div class="control-group"><label for="scaleSelect">Color scale</label><select id="scaleSelect"><option value="Viridis">Viridis</option><option value="Cividis">Cividis</option><option value="Blues">Blues</option><option value="YlOrRd">Yellow-orange-red</option><option value="RdBu">Red-blue</option></select></div>
+      </div>
+      <div class="grid two-one">
+        <div class="card map-card"><div class="card-head"><div><h3 id="mapTitle">World map</h3><p id="mapSubtitle">Hover over a country for details.</p></div><button class="text-button" id="resetViewButton">Reset map</button></div><div id="map" class="map"></div></div>
+        <aside class="card country-card" aria-live="polite"><p class="small-title">Selected country</p><h3 id="selectedCountryName">Select a country</h3><div class="country-code" id="selectedCountryCode">-</div><div class="stat-list"><div><span class="stat-label">Value</span><span class="stat-value" id="selectedValue">-</span></div><div><span class="stat-label">Rank</span><span class="stat-value" id="selectedRank">-</span></div><div><span class="stat-label">Percentile</span><span class="stat-value" id="selectedPercentile">-</span></div></div><p id="selectedIndexDescription" class="muted"></p><div class="profile-wrap"><h4>Country profile</h4><div class="table-wrap small-table"><table id="countryProfileTable"><thead><tr><th>Index</th><th>Value</th><th>Rank</th></tr></thead><tbody></tbody></table></div></div></aside>
+      </div>
+    </section>
+
+    <section class="section shell" id="rankings">
+      <div class="section-heading compact"><p class="eyebrow">Rankings and comparisons</p><h2>Distribution, top economies, and cross-index relationships</h2></div>
+      <div class="grid three"><div class="card stat-card"><span class="stat-label">Observed countries</span><span class="stat-big" id="observedCount">-</span></div><div class="card stat-card"><span class="stat-label">Mean</span><span class="stat-big" id="meanValue">-</span></div><div class="card stat-card"><span class="stat-label">Median</span><span class="stat-big" id="medianValue">-</span></div></div>
+      <div class="grid one-one">
+        <div class="card"><div class="card-head"><div><h3>Top economies</h3><p id="topTableCaption">Highest values for the selected index.</p></div><button class="text-button" id="downloadRankingsButton">Download rankings</button></div><div class="table-wrap"><table id="topTable"><thead><tr><th>Rank</th><th>Country</th><th>Value</th><th>Percentile</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card"><div class="card-head"><div><h3>Relationship with another index</h3><p>Pick a comparison index to inspect correlations visually.</p></div><div class="control-group inline"><label for="compareSelect">Y-axis</label><select id="compareSelect"></select></div></div><div id="scatter" class="scatter"></div></div>
+      </div>
+    </section>
+
+    <section class="section shell" id="methodology">
+      <div class="section-heading"><p class="eyebrow">Methodology</p><h2>What the indices are designed to capture</h2><p>The paper interprets the post-2018 reorganization of trade through third-country spillovers from U.S.-China decoupling. The site is intentionally data-driven: if the CSV changes, the explorer updates automatically.</p></div>
+      <div class="method-grid"><article class="method-card"><span class="method-number">01</span><h3>Export competition</h3><p>Chinese exports displaced from the U.S. may be redirected to third markets and crowd out other exporters in shared product-destination cells.</p></article><article class="method-card"><span class="method-number">02</span><h3>Import competition</h3><p>Redirected Chinese goods can increase import penetration in domestic markets, raising competitive pressure on domestic producers.</p></article><article class="method-card"><span class="method-number">03</span><h3>Consumer opportunities</h3><p>Cheaper Chinese imports may reduce consumer prices and increase access to imported varieties in destination markets.</p></article><article class="method-card"><span class="method-number">04</span><h3>Sourcing opportunities</h3><p>Cheaper Chinese intermediate inputs can lower costs for downstream producers and potentially strengthen export competitiveness.</p></article></div>
+      <div class="card methodology-note"><h3>How to read ranks and percentiles</h3><p>For every selected index, the website ranks countries among those with non-missing values. Rank 1 is the highest value. Percentiles run from 0 to 100, with 100 corresponding to the highest observed value. Missing values are shown as unavailable and excluded from the rank distribution.</p><p>The formulas and data construction details are in Section 3 and Appendix A.2/B of the paper. The metadata file <code>data/index_metadata.json</code> controls labels and descriptions shown on this page; the raw numeric values come from <code>data/measures_panel.csv</code>.</p></div>
+      <div class="card data-dictionary"><div class="card-head"><div><h3>Data dictionary</h3><p>Labels are editable in <code>data/index_metadata.json</code>.</p></div></div><div class="table-wrap"><table id="dictionaryTable"><thead><tr><th>Column</th><th>Family</th><th>Description</th></tr></thead><tbody></tbody></table></div></div>
+    </section>
+
+    <section class="section shell" id="downloads">
+      <div class="section-heading compact"><p class="eyebrow">Downloads and reproducibility</p><h2>Paper, data, and update workflow</h2></div>
+      <div class="grid three"><a class="download-card" id="downloadPaperCard" href="paper/resettling_trade.pdf"><span>PDF</span><strong>Paper draft</strong><small id="downloadPaperVersion">June 2026 draft</small></a><a class="download-card" id="downloadDataCard" href="data/measures_panel.csv" download><span>CSV</span><strong>Current index values</strong><small>Country-level panel used by the explorer</small></a><a class="download-card" href="paper/Draft_AKP_v3.tex" download><span>TEX</span><strong>LaTeX source</strong><small>Optional working-paper source file</small></a></div>
+      <div class="card update-card"><h3>Updating the website later</h3><ol><li>Replace <code>docs/data/measures_panel.csv</code> with the new CSV. Keep the country code column named <code>iso3</code>.</li><li>If you add, drop, or rename an index, edit <code>docs/data/index_metadata.json</code>. Missing metadata is allowed; the site will fall back to the column name.</li><li>Replace <code>docs/paper/resettling_trade.pdf</code> when the paper changes.</li><li>Commit and push to GitHub. GitHub Pages will publish the updated files automatically.</li></ol></div>
+    </section>
+  </main>
+
+  <footer class="footer shell"><p>© <span id="year"></span> <span id="footerAuthors">Pol Antràs, Adrian Kulesza, and Andrea F. Presbitero</span>. Built as a static GitHub Pages site.</p></footer>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

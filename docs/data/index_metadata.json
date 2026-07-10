@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "rank_rule": "Rank 1 is the highest observed value for the selected index. Percentiles run from 0 to 100, with 100 assigned to the highest observed value.",
+  "default_index": "ECI",
+  "indices": [
+    {
+      "id": "ECI",
+      "label": "Export Competition Index (ECI)",
+      "short_label": "ECI",
+      "family": "Export competition",
+      "description": "Model-based exposure of a country's exports to increased Chinese competition in third markets. It combines the product-level China price shock, Chinese penetration in destination-product markets, the importance of those markets for the exporter, and demand elasticities.",
+      "unit": "index points"
+    },
+    {
+      "id": "ECI_prod",
+      "label": "Export Competition Index, product-level variant (ECI_prod)",
+      "short_label": "ECI_prod",
+      "family": "Export competition",
+      "description": "Product-level variant of the export competition index that aggregates across destinations first. It is useful when Chinese exports may be redirected toward destinations where China had relatively low baseline sales.",
+      "unit": "index points"
+    },
+    {
+      "id": "ECI_long",
+      "label": "Export Competition Index, long-window variant (ECI_long)",
+      "short_label": "ECI_long",
+      "family": "Export competition",
+      "description": "Export competition index using the longer tariff window and earlier baseline shares.",
+      "unit": "index points"
+    },
+    {
+      "id": "ECI_basic",
+      "label": "Export Competition Index, basic variant (ECI_basic)",
+      "short_label": "ECI_basic",
+      "family": "Export competition",
+      "description": "Export competition index using a simpler price-shock proxy rather than the full elasticity- and tariff-based shock.",
+      "unit": "index points"
+    },
+    {
+      "id": "ECI_basic_full",
+      "label": "Export Competition Index, basic full-coverage variant (ECI_basic_full)",
+      "short_label": "ECI_basic_full",
+      "family": "Export competition",
+      "description": "Basic export competition index extended to a broader product set where possible.",
+      "unit": "index points"
+    },
+    {
+      "id": "ESI",
+      "label": "Export Similarity Index (ESI)",
+      "short_label": "ESI",
+      "family": "Export similarity",
+      "description": "Finger-Kreinin-style similarity between a country's export structure and China's across products and destinations outside the United States and China.",
+      "unit": "index points"
+    },
+    {
+      "id": "ESI_alt",
+      "label": "Export Similarity Index, destination-weighted variant (ESI_alt)",
+      "short_label": "ESI_alt",
+      "family": "Export similarity",
+      "description": "Alternative export similarity measure that averages destination-specific product similarity using the country's export weights across destinations.",
+      "unit": "index points"
+    },
+    {
+      "id": "ESI_prod",
+      "label": "Export Similarity Index, product-only variant (ESI_prod)",
+      "short_label": "ESI_prod",
+      "family": "Export similarity",
+      "description": "Export similarity computed at the product level, abstracting from the destination composition of sales.",
+      "unit": "index points"
+    },
+    {
+      "id": "ESI_dest",
+      "label": "Export Similarity Index, destination-only variant (ESI_dest)",
+      "short_label": "ESI_dest",
+      "family": "Export similarity",
+      "description": "Export similarity computed at the destination level, abstracting from the product composition of sales.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI",
+      "label": "Import Competition Index (ICI)",
+      "short_label": "ICI",
+      "family": "Import competition",
+      "description": "Model-based exposure of domestic producers to redirected Chinese goods in their own market. It weights product-level import pressure by the importance of the affected sectors for domestic sales.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI_long",
+      "label": "Import Competition Index, long-window variant (ICI_long)",
+      "short_label": "ICI_long",
+      "family": "Import competition",
+      "description": "Import competition index using the longer tariff window and earlier baseline shares.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI_basic",
+      "label": "Import Competition Index, basic variant (ICI_basic)",
+      "short_label": "ICI_basic",
+      "family": "Import competition",
+      "description": "Import competition index using a simpler price-shock proxy rather than the full elasticity- and tariff-based shock.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI_basic_full",
+      "label": "Import Competition Index, basic full-coverage variant (ICI_basic_full)",
+      "short_label": "ICI_basic_full",
+      "family": "Import competition",
+      "description": "Basic import competition index extended to a broader product set where possible.",
+      "unit": "index points"
+    },
+    {
+      "id": "ISI",
+      "label": "Import Similarity Index (ISI)",
+      "short_label": "ISI",
+      "family": "Import similarity",
+      "description": "Similarity between the products a country imports from China and the products the United States imports from China.",
+      "unit": "index points"
+    },
+    {
+      "id": "ISI_prod",
+      "label": "Import Similarity Index, product variant (ISI_prod)",
+      "short_label": "ISI_prod",
+      "family": "Import similarity",
+      "description": "Alternative import similarity measure focused on product composition.",
+      "unit": "index points"
+    },
+    {
+      "id": "ISI_broad",
+      "label": "Import Similarity Index, broad variant (ISI_broad)",
+      "short_label": "ISI_broad",
+      "family": "Import similarity",
+      "description": "Broad import similarity measure comparing a country's imports from China with China's exports to all destinations, not only the United States.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI",
+      "label": "Consumer Gains Index (CGI)",
+      "short_label": "CGI",
+      "family": "Consumer opportunities",
+      "description": "Exposure of consumers to lower import prices from redirected Chinese goods. Higher values indicate larger potential price declines for import consumers.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI_long",
+      "label": "Consumer Gains Index, long-window variant (CGI_long)",
+      "short_label": "CGI_long",
+      "family": "Consumer opportunities",
+      "description": "Consumer gains index using the longer tariff window and earlier baseline shares.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI_basic",
+      "label": "Consumer Gains Index, basic variant (CGI_basic)",
+      "short_label": "CGI_basic",
+      "family": "Consumer opportunities",
+      "description": "Consumer gains index using a simpler price-shock proxy rather than the full elasticity- and tariff-based shock.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI_basic_full",
+      "label": "Consumer Gains Index, basic full-coverage variant (CGI_basic_full)",
+      "short_label": "CGI_basic_full",
+      "family": "Consumer opportunities",
+      "description": "Basic consumer gains index extended to a broader product set where possible.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI_upstream",
+      "label": "Consumer Gains Index, upstream goods (CGI_upstream)",
+      "short_label": "CGI_upstream",
+      "family": "Consumer opportunities",
+      "description": "Consumer gains index restricted to more upstream goods, using the upstreamness classification.",
+      "unit": "index points"
+    },
+    {
+      "id": "CGI_downstream",
+      "label": "Consumer Gains Index, downstream goods (CGI_downstream)",
+      "short_label": "CGI_downstream",
+      "family": "Consumer opportunities",
+      "description": "Consumer gains index restricted to more downstream or final goods, using the upstreamness classification.",
+      "unit": "index points"
+    },
+    {
+      "id": "SGI",
+      "label": "Sourcing Gains Index (SGI)",
+      "short_label": "SGI",
+      "family": "Sourcing opportunities",
+      "description": "Exposure of downstream producers to cheaper Chinese intermediate inputs. The index traces input-output links from cheaper imported inputs to downstream export competitiveness.",
+      "unit": "index points"
+    },
+    {
+      "id": "SGI_long",
+      "label": "Sourcing Gains Index, long-window variant (SGI_long)",
+      "short_label": "SGI_long",
+      "family": "Sourcing opportunities",
+      "description": "Sourcing gains index using the longer tariff window and earlier baseline shares.",
+      "unit": "index points"
+    },
+    {
+      "id": "SGI_basic",
+      "label": "Sourcing Gains Index, basic variant (SGI_basic)",
+      "short_label": "SGI_basic",
+      "family": "Sourcing opportunities",
+      "description": "Sourcing gains index using a simpler price-shock proxy rather than the full elasticity- and tariff-based shock.",
+      "unit": "index points"
+    },
+    {
+      "id": "SGI_basic_full",
+      "label": "Sourcing Gains Index, basic full-coverage variant (SGI_basic_full)",
+      "short_label": "SGI_basic_full",
+      "family": "Sourcing opportunities",
+      "description": "Basic sourcing gains index extended to a broader product set where possible.",
+      "unit": "index points"
+    }
+  ]
+}
