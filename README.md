@@ -20,7 +20,6 @@ docs/
   data/index_metadata.json         Labels, families, and descriptions for each index
   data/country_names.json          ISO3-to-country-name lookup table
   paper/resettling_trade.pdf       Paper PDF linked from the site
-  paper/Draft_AKP_v3.tex           Optional LaTeX source download
 scripts/
   check_data.py                    Simple CSV and metadata validator
 README.md                          This file
@@ -125,14 +124,6 @@ docs/paper/resettling_trade.pdf
 
 If you want to use a different filename, also edit `docs/site_config.json` and change the `paper_url` field.
 
-The LaTeX source is included as an optional download at:
-
-```text
-docs/paper/Draft_AKP_v3.tex
-```
-
-You can delete it if you do not want to make the source available publicly. If you delete it, also remove or edit the LaTeX download card in `docs/index.html`.
-
 ## Editing visible website text
 
 For light edits, use these files:
@@ -142,13 +133,12 @@ For light edits, use these files:
 - `docs/index.html`: methodology cards, download cards, and page structure.
 - `docs/assets/styles.css`: colors, spacing, typography, and layout.
 
-## Rank and percentile convention
+## Rank convention
 
 For each selected index:
 
 - Rank 1 is the highest observed value.
 - Countries with missing values are excluded from the ranking for that index.
-- Percentiles run from 0 to 100, with 100 assigned to the highest observed value.
 - The website displays values as the raw CSV value multiplied by 100, matching the scale used in the draft tables.
 
 ## Notes and limitations

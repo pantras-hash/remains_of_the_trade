@@ -21,7 +21,6 @@
     if (isMissing(value) || Number.isNaN(Number(value))) return 'NA';
     return rawToDisplay(value).toLocaleString(undefined, { maximumFractionDigits: decimalsFor(id), minimumFractionDigits: decimalsFor(id) });
   };
-  const formatPercentile = (value) => isMissing(value) ? 'NA' : Number(value).toFixed(1);
   const escapeHtml = (text) => String(text ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
 
   document.addEventListener('DOMContentLoaded', init);
@@ -131,8 +130,7 @@
       const n = values.length;
       values.forEach(({ row, value }) => {
         const greater = values.filter(d => d.value > value).length;
-        const less = values.filter(d => d.value < value).length;
-        row.stat[id] = { rank: greater + 1, n, percentile: n > 1 ? (100 * less / (n - 1)) : 100 };
+        row.stat[id] = { rank: greater + 1, n };
       });
       const sorted = values.map(d => d.value).sort((a, b) => a - b);
       const sum = sorted.reduce((a, b) => a + b, 0);
@@ -252,10 +250,10 @@
     const hoverValue = dec === 1 ? ':.1f' : ':.2f';
     const data = [{
       type: 'choropleth', locationmode: 'ISO-3', locations: records.map(row => row.iso3), z: zvals,
-      text: records.map(row => row.country), customdata: records.map(row => [row.stat[id].rank, row.stat[id].n, row.stat[id].percentile]),
+      text: records.map(row => row.country), customdata: records.map(row => [row.stat[id].rank, row.stat[id].n]),
       colorscale: $('scaleSelect').value, reversescale: false, marker: { line: { color: 'rgba(255,255,255,0.55)', width: 0.4 } },
       colorbar: { title: { text: meta.short_label || id, side: 'right' }, thickness: 13, len: 0.70 },
-      hovertemplate: `<b>%{text}</b><br>${escapeHtml(meta.short_label || id)}: %{z${hoverValue}}<br>Rank: %{customdata[0]} of %{customdata[1]}<br>Percentile: %{customdata[2]:.1f}<extra></extra>`
+      hovertemplate: `<b>%{text}</b><br>${escapeHtml(meta.short_label || id)}: %{z${hoverValue}}<br>Rank: %{customdata[0]} of %{customdata[1]}<extra></extra>`
     }];
     const layout = {
       margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
@@ -282,7 +280,6 @@
     setText('selectedCountryCode', row.iso3);
     setText('selectedValue', formatValue(row.values[id], id));
     setText('selectedRank', stat ? `${stat.rank} of ${stat.n}` : 'NA');
-    setText('selectedPercentile', stat ? formatPercentile(stat.percentile) : 'NA');
     setText('selectedIndexDescription', metaFor(id).description || '');
     const tbody = $('countryProfileTable').querySelector('tbody');
     tbody.innerHTML = state.indices.map(meta => {
@@ -310,7 +307,7 @@
     $('topTableCaption').textContent = `Highest values for ${metaFor(id).label}.`;
     $('topTable').querySelector('tbody').innerHTML = rows.map(row => {
       const s = row.stat[id];
-      return `<tr class="clickable" data-iso="${row.iso3}"><td>${s.rank}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td><td>${formatPercentile(s.percentile)}</td></tr>`;
+      return `<tr class="clickable" data-iso="${row.iso3}"><td>${s.rank}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td></tr>`;
     }).join('');
     $('topTable').querySelectorAll('tr[data-iso]').forEach(tr => tr.addEventListener('click', () => { state.selectedCountry = tr.dataset.iso; $('countrySelect').value = state.selectedCountry; renderCountryPanel(); document.querySelector('#explorer').scrollIntoView({ behavior: 'smooth' }); }));
   }
@@ -340,11 +337,11 @@
 
   function downloadRankings() {
     const id = state.selectedIndex;
-    const header = ['rank', 'iso3', 'country', 'value_raw', 'value_display_x100', 'percentile'];
+    const header = ['rank', 'iso3', 'country', 'value_raw', 'value_display_x100'];
     const lines = [header.join(',')];
     rankedRows(id).forEach(row => {
       const s = row.stat[id];
-      const values = [s.rank, row.iso3, csvEscape(row.country), row.values[id], rawToDisplay(row.values[id]), s.percentile.toFixed(4)];
+      const values = [s.rank, row.iso3, csvEscape(row.country), row.values[id], rawToDisplay(row.values[id])];
       lines.push(values.join(','));
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
