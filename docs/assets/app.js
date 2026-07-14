@@ -313,10 +313,11 @@
   }
 
   function renderScatter() {
-    if (!window.Plotly) { $('scatter').innerHTML = '<p class="muted">Plotly did not load.</p>'; return; }
     const xId = state.selectedIndex;
     const yId = state.compareIndex;
     const rows = state.rows.filter(row => row.values[xId] !== null && row.values[yId] !== null);
+    renderCorrelationStats(rows, xId, yId);
+    if (!window.Plotly) { $('scatter').innerHTML = '<p class="muted">Plotly did not load.</p>'; return; }
     const data = [{
       type: 'scatter', mode: 'markers', x: rows.map(row => rawToDisplay(row.values[xId])), y: rows.map(row => rawToDisplay(row.values[yId])),
       text: rows.map(row => row.country), customdata: rows.map(row => row.iso3), marker: { size: 9, opacity: 0.75, line: { width: 0.5, color: '#ffffff' } },
@@ -328,6 +329,40 @@
       if (scatter.removeAllListeners) scatter.removeAllListeners('plotly_click');
       if (scatter.on) scatter.on('plotly_click', ev => { const iso = ev.points?.[0]?.customdata; if (iso) { state.selectedCountry = iso; $('countrySelect').value = iso; renderCountryPanel(); } });
     });
+  }
+
+  function pearsonCorrelation(xs, ys) {
+    const n = xs.length;
+    const xMean = xs.reduce((a, b) => a + b, 0) / n;
+    const yMean = ys.reduce((a, b) => a + b, 0) / n;
+    let cov = 0, xVar = 0, yVar = 0;
+    for (let i = 0; i < n; i++) { const dx = xs[i] - xMean, dy = ys[i] - yMean; cov += dx * dy; xVar += dx * dx; yVar += dy * dy; }
+    return (xVar === 0 || yVar === 0) ? null : cov / Math.sqrt(xVar * yVar);
+  }
+
+  function ranksWithTies(values) {
+    const order = values.map((v, i) => i).sort((a, b) => values[a] - values[b]);
+    const ranks = new Array(values.length);
+    let i = 0;
+    while (i < order.length) {
+      let j = i;
+      while (j + 1 < order.length && values[order[j + 1]] === values[order[i]]) j++;
+      const avgRank = (i + j) / 2 + 1;
+      for (let k = i; k <= j; k++) ranks[order[k]] = avgRank;
+      i = j + 1;
+    }
+    return ranks;
+  }
+
+  function renderCorrelationStats(rows, xId, yId) {
+    const n = rows.length;
+    if (n < 2) { setText('pearsonValue', 'NA'); setText('spearmanValue', 'NA'); return; }
+    const xs = rows.map(row => row.values[xId]);
+    const ys = rows.map(row => row.values[yId]);
+    const pearson = pearsonCorrelation(xs, ys);
+    const spearman = pearsonCorrelation(ranksWithTies(xs), ranksWithTies(ys));
+    setText('pearsonValue', pearson === null ? 'NA' : pearson.toFixed(2));
+    setText('spearmanValue', spearman === null ? 'NA' : spearman.toFixed(2));
   }
 
   function renderDictionary() {
