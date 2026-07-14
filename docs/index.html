@@ -15,7 +15,7 @@
       <a class="brand" href="#top" aria-label="Home"><span class="brand-mark">RT</span><span class="brand-text">Remains of Trade</span></a>
       <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks">Menu</button>
       <div class="nav-links" id="navLinks">
-        <a href="#explorer">Explorer</a><a href="#rankings">Rankings</a><a href="#methodology">Methodology</a><a href="#downloads">Downloads</a><a class="button button-small" id="navPaperLink" href="paper/resettling_trade.pdf">Paper</a>
+        <a href="#explorer">Explorer</a><a href="#rankings">Rankings</a><a href="#products">Products</a><a href="#methodology">Methodology</a><a href="#downloads">Downloads</a><a class="button button-small" id="navPaperLink" href="paper/resettling_trade.pdf">Paper</a>
       </div>
     </nav>
   </header>
@@ -43,13 +43,36 @@
         <div class="card map-card"><div class="card-head"><div><h3 id="mapTitle">World map</h3><p id="mapSubtitle">Hover over a country for details.</p></div><button class="text-button" id="resetViewButton">Reset map</button></div><div id="map" class="map"></div></div>
         <aside class="card country-card" aria-live="polite"><p class="small-title">Selected country</p><h3 id="selectedCountryName">Select a country</h3><div class="country-code" id="selectedCountryCode">-</div><div class="stat-list"><div><span class="stat-label">Value</span><span class="stat-value" id="selectedValue">-</span></div><div><span class="stat-label">Rank</span><span class="stat-value" id="selectedRank">-</span></div></div><p id="selectedIndexDescription" class="muted"></p><div class="profile-wrap"><h4>Country profile</h4><div class="table-wrap small-table"><table id="countryProfileTable"><thead><tr><th>Index</th><th>Value</th><th>Rank</th></tr></thead><tbody></tbody></table></div></div></aside>
       </div>
+      <div class="card top-products-card" id="topProductsWrap" hidden><div class="card-head"><div><h3 id="topProductsHeading">Top products</h3><p class="muted">Products contributing most to the selected country's index value.</p></div></div><div class="table-wrap"><table id="topProductsTable"><thead><tr><th>Rank</th><th>Product</th><th>Share</th><th>Contribution</th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
     <section class="section shell" id="rankings">
       <div class="section-heading compact"><p class="eyebrow">Rankings and comparisons</p><h2>Distribution, top economies, and cross-index relationships</h2></div>
       <div class="grid one-one">
-        <div class="card"><div class="card-head"><div><h3>Top economies</h3><p id="topTableCaption">Highest values for the selected index.</p></div><button class="text-button" id="downloadRankingsButton">Download rankings</button></div><div class="table-wrap"><table id="topTable"><thead><tr><th>Rank</th><th>Country</th><th>Value</th></tr></thead><tbody></tbody></table></div></div>
+        <div class="card"><div class="card-head"><div><h3>Top economies</h3><p id="topTableCaption">Highest values for the selected index.</p></div><button class="text-button" id="downloadRankingsButton">Download rankings</button></div><div class="table-wrap rankings-table-wrap"><table id="topTable"><thead><tr><th>Rank</th><th>Country</th><th>Value</th></tr></thead><tbody></tbody></table></div></div>
         <div class="card"><div class="card-head"><div><h3>Relationship with another index</h3><p>Pick a comparison index to inspect correlations visually.</p></div><div class="control-group inline"><label for="compareSelect">Y-axis</label><select id="compareSelect"></select></div></div><div id="scatter" class="scatter"></div><div class="stat-list correlation-list" id="correlationStats"><div><span class="stat-label">Pearson correlation</span><span class="stat-value" id="pearsonValue">-</span></div><div><span class="stat-label">Rank (Spearman) correlation</span><span class="stat-value" id="spearmanValue">-</span></div></div></div>
+      </div>
+    </section>
+
+    <section class="section shell" id="products">
+      <div class="section-heading"><p class="eyebrow">Product explorer</p><h2>See which countries are most affected by a product</h2><p>Choose a product code and an index family to see which countries have that product among their most exposed, ranked by how much it contributes to their overall index value.</p></div>
+      <div class="control-card">
+        <div class="control-group grow"><label for="productSelect">Product (HS code)</label><select id="productSelect"></select></div>
+        <div class="control-group"><label for="productIndexSelect">Index</label><select id="productIndexSelect"><option value="ECI">ECI</option><option value="ICI">ICI</option><option value="CGI">CGI</option><option value="SGI">SGI</option></select></div>
+        <div class="control-group"><label for="productMetricSelect">Highlight by</label><select id="productMetricSelect"><option value="contribution">Contribution</option><option value="share">Share</option></select></div>
+      </div>
+      <div class="card map-card">
+        <div class="card-head"><div><h3 id="productMapTitle">Most affected countries</h3><p id="productMapSubtitle">Hover over a country for details.</p></div></div>
+        <div id="productMap" class="map"></div>
+      </div>
+      <div class="card price-shocks-card">
+        <div class="card-head"><div><h3>Price shocks by product</h3><p>All products with a price-shock estimate, ranked by the size of the shock. Click a row to load that product above.</p></div></div>
+        <div class="table-wrap small-table price-shocks-table-wrap">
+          <table id="priceShocksTable">
+            <thead><tr><th>Rank</th><th>HS6</th><th>Description</th><th>China export share to US</th><th>Tariff change</th><th>Price shock</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
