@@ -11,19 +11,27 @@ The site is designed for GitHub Pages. It does not require a server or a build s
 
 ```text
 docs/
-  index.html                       Website page
-  site_config.json                 Site title, paper/data links, version note
-  assets/styles.css                Visual styling
-  assets/app.js                    Interactive map, rankings, scatter plot, CSV parsing
-  assets/favicon.svg               Small site icon
-  data/measures_panel.csv          Current country-level index values
-  data/index_metadata.json         Labels, families, and descriptions for each index
-  data/country_names.json          ISO3-to-country-name lookup table
-  paper/resettling_trade.pdf       Paper PDF linked from the site
-  paper/Draft_AKP_v3.tex           Optional LaTeX source download
+  index.html                        Website page
+  site_config.json                  Site title, paper/data links, version note
+  assets/styles.css                 Visual styling
+  assets/app.js                     Interactive map, rankings, scatter plot, product explorer, CSV parsing
+  assets/favicon.svg                Small site icon
+  data/measures_panel.csv           Current country-level index values
+  data/index_metadata.json          Labels, families, and descriptions for each index
+  data/country_names.json           ISO3-to-country-name lookup table
+  data/top_products_wide.csv        Source data: top-ranked products per country per index (not fetched by the site directly)
+  data/price_shocks_export.csv      Source data: per-commodity price shock estimates (not fetched by the site directly)
+  data/hs6_descriptions.csv         Source data: HS6 product code -> description lookup (not fetched by the site directly)
+  data/top_products_by_country.json Generated: top 10 products per country, per index (used by the country panel)
+  data/products_index.json          Generated: list of selectable product codes for the Product Explorer
+  data/products/<code>.json         Generated: one small file per product listing its most affected countries
+  data/hs_labels.json               Generated: product code -> description lookup, filtered to codes used on the site
+  data/price_shocks_table.json      Generated: one row per commodity with a price-shock estimate, for the price-shock reference table
+  paper/resettling_trade.pdf        Paper PDF linked from the site
 scripts/
-  check_data.py                    Simple CSV and metadata validator
-README.md                          This file
+  check_data.py                     Simple CSV and metadata validator
+  build_products.py                 Builds the product-explorer JSON files from top_products_wide.csv, price_shocks_export.csv, and hs6_descriptions.csv
+README.md                           This file
 ```
 
 ## Local preview
@@ -115,6 +123,41 @@ git push
 
 GitHub Pages will update automatically, usually within a minute or two.
 
+## Updating the product-level data
+
+Unlike `measures_panel.csv`, the Product Explorer and country top-products
+table are not read directly from their source CSVs at page load. Instead, a
+build script pre-computes small JSON files ahead of time, because
+`top_products_wide.csv` is far too large (tens of MB) to fetch in the
+browser.
+
+1. Replace the source files as needed:
+
+```text
+docs/data/top_products_wide.csv     top-ranked products per country, per index
+docs/data/price_shocks_export.csv   per-commodity price-shock estimates
+docs/data/hs6_descriptions.csv      HS6 code -> description lookup
+```
+
+2. Regenerate the derived JSON files:
+
+```bash
+python scripts/build_products.py
+```
+
+This only keeps commodities that have a non-missing `price_shock` in
+`price_shocks_export.csv`, and writes:
+
+```text
+docs/data/top_products_by_country.json
+docs/data/products_index.json
+docs/data/hs_labels.json
+docs/data/price_shocks_table.json
+docs/data/products/<code>.json
+```
+
+3. Commit and push the source CSVs and the regenerated JSON/products files.
+
 ## Updating the paper
 
 Replace the PDF while keeping the same filename:
@@ -125,14 +168,6 @@ docs/paper/resettling_trade.pdf
 
 If you want to use a different filename, also edit `docs/site_config.json` and change the `paper_url` field.
 
-The LaTeX source is included as an optional download at:
-
-```text
-docs/paper/Draft_AKP_v3.tex
-```
-
-You can delete it if you do not want to make the source available publicly. If you delete it, also remove or edit the LaTeX download card in `docs/index.html`.
-
 ## Editing visible website text
 
 For light edits, use these files:
@@ -142,13 +177,12 @@ For light edits, use these files:
 - `docs/index.html`: methodology cards, download cards, and page structure.
 - `docs/assets/styles.css`: colors, spacing, typography, and layout.
 
-## Rank and percentile convention
+## Rank convention
 
 For each selected index:
 
 - Rank 1 is the highest observed value.
 - Countries with missing values are excluded from the ranking for that index.
-- Percentiles run from 0 to 100, with 100 assigned to the highest observed value.
 - The website displays values as the raw CSV value multiplied by 100, matching the scale used in the draft tables.
 
 ## Notes and limitations
