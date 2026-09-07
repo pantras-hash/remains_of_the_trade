@@ -16,6 +16,8 @@
     productsIndex: [],
     hsLabels: {},
     priceShocksTable: [],
+    paperSample: null,
+    sample: 'paper',
     selectedProduct: null,
     productIndex: 'ECI',
     productMetric: 'share',
@@ -27,7 +29,9 @@
   const $ = (id) => document.getElementById(id);
   const isMissing = (value) => value === null || value === undefined || value === '' || String(value).trim().toUpperCase() === 'NA' || String(value).trim().toUpperCase() === 'NAN';
   const rawToDisplay = (value) => isMissing(value) ? null : Number(value) * 100;
-  const decimalsFor = (id) => (id && (id.startsWith('ESI') || id.startsWith('ISI'))) ? 1 : 2;
+  // Two decimals everywhere, matching the precision of the paper's tables
+  // (Table 1 reports ESI as 31.38, Table 3 reports ISI as 72.79).
+  const decimalsFor = () => 2;
   const formatValue = (value, id) => {
     if (isMissing(value) || Number.isNaN(Number(value))) return 'NA';
     return rawToDisplay(value).toLocaleString(undefined, { maximumFractionDigits: decimalsFor(id), minimumFractionDigits: decimalsFor(id) });
@@ -44,14 +48,15 @@
   async function init() {
     bindNav();
     try {
-      const [config, metadata, countryNames, csvText, topProductsByCountry, productsIndex, hsLabels] = await Promise.all([
+      const [config, metadata, countryNames, csvText, topProductsByCountry, productsIndex, hsLabels, paperSample] = await Promise.all([
         fetchJson('site_config.json'),
         fetchJson('data/index_metadata.json'),
         fetchJson('data/country_names.json'),
         fetchText('data/measures_panel.csv'),
         fetchJson('data/top_products_by_country.json').catch(() => ({})),
         fetchJson('data/products_index.json').catch(() => []),
-        fetchJson('data/hs_labels.json').catch(() => ({}))
+        fetchJson('data/hs_labels.json').catch(() => ({})),
+        fetchJson('data/paper_sample.json').catch(() => null)
       ]);
       state.config = config || {};
       state.metadata = metadata || { indices: [] };
@@ -59,6 +64,10 @@
       state.topProductsByCountry = topProductsByCountry || {};
       state.productsIndex = productsIndex || [];
       state.hsLabels = hsLabels || {};
+      state.paperSample = paperSample && Array.isArray(paperSample.iso3) ? paperSample : null;
+      // Without the membership file there is no paper sample to show, so fall back
+      // to the full panel rather than silently rendering an empty ranking.
+      if (!state.paperSample) state.sample = 'full';
       state.metaById = Object.fromEntries((state.metadata.indices || []).map(m => [m.id, m]));
       const parsed = parseCSV(csvText);
       state.columns = parsed.headers;
@@ -280,6 +289,15 @@
     $('compareSelect').addEventListener('change', e => { state.compareIndex = e.target.value; renderScatter(); });
     $('resetViewButton').addEventListener('click', () => renderMap());
     $('downloadRankingsButton').addEventListener('click', downloadRankings);
+    document.querySelectorAll('.sample-tab').forEach(tab => tab.addEventListener('click', () => {
+      const next = tab.dataset.sample;
+      if (!next || next === state.sample) return;
+      if (next === 'paper' && !state.paperSample) return;
+      state.sample = next;
+      renderSampleTabs();
+      renderTopTable();
+      renderScatter();
+    }));
     window.addEventListener('resize', debounce(() => { if (window.Plotly) { Plotly.Plots.resize('map'); Plotly.Plots.resize('scatter'); Plotly.Plots.resize('productMap'); } }, 120));
     const productSelect = $('productSelect');
     const productIndexSelect = $('productIndexSelect');
@@ -331,10 +349,11 @@
     const meta = metaFor(state.selectedIndex);
     setText('defaultIndexText', meta.label);
     setText('mapTitle', meta.label);
-    setText('mapSubtitle', meta.description || 'Hover over a country for details.');
+    setText('mapSubtitle', meta.unit ? `Units: ${meta.unit}. ${meta.description || ''}`.trim() : (meta.description || 'Hover over a country for details.'));
     renderMap();
     renderCountryPanel();
     renderSummary();
+    renderSampleTabs();
     renderTopTable();
     renderScatter();
     renderProductExplorer();
@@ -347,14 +366,13 @@
     const meta = metaFor(id);
     const records = state.rows.filter(row => row.values[id] !== null && Number.isFinite(row.values[id]));
     const zvals = records.map(row => rawToDisplay(row.values[id]));
-    const dec = decimalsFor(id);
-    const hoverValue = dec === 1 ? ':.1f' : ':.2f';
+    const hoverValue = ':.2f';
     const data = [{
       type: 'choropleth', locationmode: 'ISO-3', locations: records.map(row => row.iso3), z: zvals,
       text: records.map(row => row.country), customdata: records.map(row => [row.stat[id].rank, row.stat[id].n]),
       colorscale: $('scaleSelect').value, reversescale: false, marker: { line: { color: 'rgba(255,255,255,0.55)', width: 0.4 } },
-      colorbar: { title: { text: meta.short_label || id, side: 'right' }, thickness: 13, len: 0.70 },
-      hovertemplate: `<b>%{text}</b><br>${escapeHtml(meta.short_label || id)}: %{z${hoverValue}}<br>Rank: %{customdata[0]} of %{customdata[1]}<extra></extra>`
+      colorbar: { title: { text: meta.unit ? `${meta.short_label || id}<br>(${meta.unit})` : (meta.short_label || id), side: 'right' }, thickness: 13, len: 0.70 },
+      hovertemplate: `<b>%{text}</b><br>${escapeHtml(meta.short_label || id)}: %{z${hoverValue}}${meta.unit ? ' ' + escapeHtml(meta.unit.startsWith('%') ? '%' : '') : ''}<br>Rank: %{customdata[0]} of %{customdata[1]}<extra></extra>`
     }];
     const layout = {
       margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
@@ -379,7 +397,9 @@
     const stat = row.stat[id];
     setText('selectedCountryName', row.country);
     setText('selectedCountryCode', row.iso3);
+    const meta = metaFor(id);
     setText('selectedValue', formatValue(row.values[id], id));
+    setText('selectedValueUnit', meta.unit || '');
     setText('selectedRank', stat ? `${stat.rank} of ${stat.n}` : 'NA');
     setText('selectedIndexDescription', metaFor(id).description || '');
     const tbody = $('countryProfileTable').querySelector('tbody');
@@ -412,17 +432,36 @@
     setText('medianValue', s.median !== null ? formatValue(s.median, id) : '-');
   }
 
+  // The paper restricts every table and correlation to 110 economies. The map and
+  // country panel still show the full panel; the rankings and the scatter below
+  // follow whichever sample is selected.
+  function sampleIsoSet() {
+    if (state.sample !== 'paper' || !state.paperSample) return null;
+    return new Set(state.paperSample.iso3);
+  }
+
+  function sampleRows() {
+    const keep = sampleIsoSet();
+    return keep ? state.rows.filter(row => keep.has(row.iso3)) : state.rows;
+  }
+
+  function sampleLabel() {
+    return state.sample === 'paper' ? (state.paperSample?.label || 'Paper sample') : 'Full sample';
+  }
+
+  // Ranks are only meaningful relative to a stated sample, so recompute them
+  // within the selected one rather than reusing the full-panel ranks.
   function rankedRows(id) {
-    return state.rows.filter(row => row.values[id] !== null && Number.isFinite(row.values[id])).sort((a, b) => b.values[id] - a.values[id] || a.country.localeCompare(b.country));
+    return sampleRows().filter(row => row.values[id] !== null && Number.isFinite(row.values[id])).sort((a, b) => b.values[id] - a.values[id] || a.country.localeCompare(b.country));
   }
 
   function renderTopTable() {
     const id = state.selectedIndex;
-    const rows = rankedRows(id).slice(0, 20);
-    $('topTableCaption').textContent = `Highest values for ${metaFor(id).label}.`;
-    $('topTable').querySelector('tbody').innerHTML = rows.map(row => {
-      const s = row.stat[id];
-      return `<tr class="clickable" data-iso="${row.iso3}"><td>${s.rank}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td></tr>`;
+    const ranked = rankedRows(id);
+    const rows = ranked.slice(0, 20);
+    $('topTableCaption').textContent = `Highest values for ${metaFor(id).label}. ${sampleLabel()}, ${ranked.length} economies ranked.`;
+    $('topTable').querySelector('tbody').innerHTML = rows.map((row, i) => {
+      return `<tr class="clickable" data-iso="${row.iso3}"><td>${i + 1}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td></tr>`;
     }).join('');
     $('topTable').querySelectorAll('tr[data-iso]').forEach(tr => tr.addEventListener('click', () => { state.selectedCountry = tr.dataset.iso; $('countrySelect').value = state.selectedCountry; renderCountryPanel(); document.querySelector('#explorer').scrollIntoView({ behavior: 'smooth' }); }));
   }
@@ -430,7 +469,7 @@
   function renderScatter() {
     const xId = state.selectedIndex;
     const yId = state.compareIndex;
-    const rows = state.rows.filter(row => row.values[xId] !== null && row.values[yId] !== null);
+    const rows = sampleRows().filter(row => row.values[xId] !== null && row.values[yId] !== null);
     renderCorrelationStats(rows, xId, yId);
     if (!window.Plotly) { $('scatter').innerHTML = '<p class="muted">Plotly did not load.</p>'; return; }
     const data = [{
@@ -476,8 +515,10 @@
     const ys = rows.map(row => row.values[yId]);
     const pearson = pearsonCorrelation(xs, ys);
     const spearman = pearsonCorrelation(ranksWithTies(xs), ranksWithTies(ys));
-    setText('pearsonValue', pearson === null ? 'NA' : pearson.toFixed(2));
-    setText('spearmanValue', spearman === null ? 'NA' : spearman.toFixed(2));
+    // Three decimals: the paper quotes correlations at this precision, and near-zero
+    // values (ISI vs ISI_broad at -0.005) are meaningless when rounded to two.
+    setText('pearsonValue', pearson === null ? 'NA' : pearson.toFixed(3));
+    setText('spearmanValue', spearman === null ? 'NA' : spearman.toFixed(3));
   }
 
   async function renderProductExplorer() {
@@ -550,24 +591,44 @@
     }));
   }
 
+  function renderSampleTabs() {
+    document.querySelectorAll('.sample-tab').forEach(tab => {
+      const active = tab.dataset.sample === state.sample;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    const paperTab = $('sampleTabPaper');
+    if (paperTab) {
+      if (!state.paperSample) { paperTab.disabled = true; paperTab.title = 'Sample membership file not available.'; }
+      else paperTab.textContent = `${state.paperSample.label || 'Paper sample'} (${state.paperSample.count || state.paperSample.iso3.length})`;
+    }
+    const fullTab = $('sampleTabFull');
+    if (fullTab) fullTab.textContent = `Full sample (${state.rows.length})`;
+    const note = $('sampleNote');
+    if (note) {
+      note.textContent = state.sample === 'paper'
+        ? (state.paperSample?.criteria || 'The sample used throughout the paper.')
+        : `Every economy in the panel, including those the paper excludes. Rankings and correlations here will not match the published tables.`;
+    }
+  }
+
   function renderDictionary() {
     const tbody = $('dictionaryTable').querySelector('tbody');
-    tbody.innerHTML = state.indices.map(meta => `<tr><td><strong>${escapeHtml(meta.id)}</strong><br><span class="muted">${escapeHtml(meta.label || meta.id)}</span></td><td>${escapeHtml(meta.family || 'Other')}</td><td>${escapeHtml(meta.description || '')}</td></tr>`).join('');
+    tbody.innerHTML = state.indices.map(meta => `<tr><td><strong>${escapeHtml(meta.id)}</strong><br><span class="muted">${escapeHtml(meta.label || meta.id)}</span></td><td>${escapeHtml(meta.family || 'Other')}</td><td>${escapeHtml(meta.unit || '')}</td><td>${escapeHtml(meta.description || '')}</td></tr>`).join('');
   }
 
   function downloadRankings() {
     const id = state.selectedIndex;
-    const header = ['rank', 'iso3', 'country', 'value_raw', 'value_display_x100'];
+    const header = ['rank', 'iso3', 'country', 'value_raw', 'value_display_x100', 'sample'];
     const lines = [header.join(',')];
-    rankedRows(id).forEach(row => {
-      const s = row.stat[id];
-      const values = [s.rank, row.iso3, csvEscape(row.country), row.values[id], rawToDisplay(row.values[id])];
+    rankedRows(id).forEach((row, i) => {
+      const values = [i + 1, row.iso3, csvEscape(row.country), row.values[id], rawToDisplay(row.values[id]), state.sample];
       lines.push(values.join(','));
     });
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${id}_rankings.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    a.href = url; a.download = `${id}_rankings_${state.sample}_sample.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
   function csvEscape(value) { const s = String(value ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
