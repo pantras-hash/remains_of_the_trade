@@ -9,6 +9,7 @@
     indices: [],
     stats: {},
     selectedIndex: null,
+    selectedBase: null,
     selectedCountry: null,
     compareIndex: null,
     topProductsByCountry: {},
@@ -68,10 +69,13 @@
       populateControls();
       bindEvents();
       state.selectedIndex = chooseDefaultIndex();
+      state.selectedBase = baseOf(metaFor(state.selectedIndex));
       state.compareIndex = chooseCompareIndex(state.selectedIndex);
       state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
       state.selectedProduct = state.productsIndex.includes('850790') ? '850790' : (state.productsIndex[0] || null);
-      $('indexSelect').value = state.selectedIndex;
+      $('indexSelect').value = state.selectedBase;
+      populateVariantSelect(state.selectedBase);
+      $('variantSelect').value = state.selectedIndex;
       $('compareSelect').value = state.compareIndex;
       $('countrySelect').value = state.selectedCountry;
       populateProductSelect();
@@ -191,7 +195,7 @@
   function setText(id, value) { const el = $(id); if (el) el.textContent = value; }
 
   function populateControls() {
-    populateIndexSelect('indexSelect', state.indices);
+    populateBaseSelect();
     populateIndexSelect('compareSelect', state.indices);
     const countrySelect = $('countrySelect');
     countrySelect.innerHTML = state.rows.slice().sort((a, b) => a.country.localeCompare(b.country)).map(row => `<option value="${row.iso3}">${escapeHtml(row.country)} (${row.iso3})</option>`).join('');
@@ -209,6 +213,42 @@
     select.innerHTML = state.productsIndex.map(code => `<option value="${escapeHtml(code)}">${escapeHtml(productLabel(code))}</option>`).join('');
   }
 
+  // Each column belongs to a base index (ECI, ESI, ICI, ISI, CGI, SGI) and is one
+  // variant of it. The Index dropdown picks the base; the Variant dropdown picks
+  // the column. Columns without metadata fall back to the prefix before the first
+  // underscore, so a newly added column still lands under a sensible base.
+  function baseOf(meta) {
+    return meta.base || String(meta.id || '').split('_')[0] || 'Other';
+  }
+
+  function baseList() {
+    const available = new Set(state.indices.map(baseOf));
+    const declared = (state.metadata.families || []).filter(f => available.has(f.id));
+    const extras = [...available].filter(id => !declared.some(f => f.id === id)).sort().map(id => ({ id, label: id }));
+    return [...declared, ...extras];
+  }
+
+  function variantsFor(base) {
+    return state.indices.filter(meta => baseOf(meta) === base);
+  }
+
+  function populateBaseSelect() {
+    const select = $('indexSelect');
+    if (!select) return;
+    select.innerHTML = baseList().map(f => {
+      const text = f.label && f.label !== f.id ? `${f.label} (${f.id})` : f.id;
+      return `<option value="${escapeHtml(f.id)}">${escapeHtml(text)}</option>`;
+    }).join('');
+  }
+
+  function populateVariantSelect(base) {
+    const select = $('variantSelect');
+    if (!select) return;
+    const variants = variantsFor(base);
+    select.innerHTML = variants.map(meta => `<option value="${escapeHtml(meta.id)}">${escapeHtml(`${meta.variant || meta.label || meta.id} (${meta.id})`)}</option>`).join('');
+    select.disabled = variants.length <= 1;
+  }
+
   function populateIndexSelect(id, indices) {
     const select = $(id);
     const groups = [...new Set(indices.map(m => m.family || 'Other'))];
@@ -220,12 +260,16 @@
 
   function bindEvents() {
     $('indexSelect').addEventListener('change', e => {
+      state.selectedBase = e.target.value;
+      const variants = variantsFor(state.selectedBase);
+      if (variants.length) state.selectedIndex = variants[0].id;
+      populateVariantSelect(state.selectedBase);
+      $('variantSelect').value = state.selectedIndex;
+      onSelectedIndexChanged();
+    });
+    $('variantSelect').addEventListener('change', e => {
       state.selectedIndex = e.target.value;
-      if (state.compareIndex === state.selectedIndex) state.compareIndex = chooseCompareIndex(state.selectedIndex);
-      $('compareSelect').value = state.compareIndex;
-      if (valueFor(state.selectedCountry, state.selectedIndex) === null) state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
-      $('countrySelect').value = state.selectedCountry;
-      renderAll();
+      onSelectedIndexChanged();
     });
     $('countrySelect').addEventListener('change', e => { state.selectedCountry = e.target.value; renderCountryPanel(); });
     $('scaleSelect').addEventListener('change', () => renderMap());
@@ -239,6 +283,14 @@
     if (productSelect) productSelect.addEventListener('change', e => { state.selectedProduct = e.target.value; renderProductExplorer(); });
     if (productIndexSelect) productIndexSelect.addEventListener('change', e => { state.productIndex = e.target.value; renderProductExplorer(); });
     if (productMetricSelect) productMetricSelect.addEventListener('change', e => { state.productMetric = e.target.value; renderProductExplorer(); });
+  }
+
+  function onSelectedIndexChanged() {
+    if (state.compareIndex === state.selectedIndex) state.compareIndex = chooseCompareIndex(state.selectedIndex);
+    $('compareSelect').value = state.compareIndex;
+    if (valueFor(state.selectedCountry, state.selectedIndex) === null) state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
+    $('countrySelect').value = state.selectedCountry;
+    renderAll();
   }
 
   function bindNav() {
