@@ -25,6 +25,9 @@
   };
 
   const BASE_PRODUCT_INDICES = ['ECI', 'ICI', 'CGI', 'SGI'];
+  // Product the Explorer opens on. Falls back to the first available code if this
+  // one drops out of products_index.json on a rebuild.
+  const DEFAULT_PRODUCT = '851712';
 
   const $ = (id) => document.getElementById(id);
   const isMissing = (value) => value === null || value === undefined || value === '' || String(value).trim().toUpperCase() === 'NA' || String(value).trim().toUpperCase() === 'NAN';
@@ -81,7 +84,7 @@
       state.selectedBase = baseOf(metaFor(state.selectedIndex));
       state.compareIndex = chooseCompareIndex(state.selectedIndex);
       state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
-      state.selectedProduct = state.productsIndex.includes('850790') ? '850790' : (state.productsIndex[0] || null);
+      state.selectedProduct = state.productsIndex.includes(DEFAULT_PRODUCT) ? DEFAULT_PRODUCT : (state.productsIndex[0] || null);
       $('indexSelect').value = state.selectedBase;
       populateVariantSelect(state.selectedBase);
       $('variantSelect').value = state.selectedIndex;
