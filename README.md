@@ -19,6 +19,7 @@ docs/
   data/measures_panel.csv           Current country-level index values
   data/index_metadata.json          Base index, variant, labels, and descriptions for each column
   data/country_names.json           ISO3-to-country-name lookup table
+  data/paper_sample.json            The 110 ISO3 codes making up the paper's sample
   data/top_products_wide.csv        Source data: top-ranked products per country per index (not fetched by the site directly)
   data/price_shocks_export.csv      Source data: per-commodity price shock estimates (not fetched by the site directly)
   data/hs6_descriptions.csv         Source data: HS6 product code -> description lookup (not fetched by the site directly)
@@ -177,6 +178,28 @@ docs/data/products/<code>.json
 
 3. Commit and push the source CSVs and the regenerated JSON/products files.
 
+## Cache-busting when you change app.js or styles.css
+
+GitHub Pages serves everything with `cache-control: max-age=600` and no content
+hashing. The HTML and the assets expire independently, so a returning visitor can end
+up with a new `index.html` and a stale cached `app.js`. When those two disagree the
+page looks broken in confusing ways, for example the Variant dropdown rendering but
+never filling in.
+
+To avoid that, `docs/index.html` loads both assets with a version query:
+
+```html
+<link rel="stylesheet" href="assets/styles.css?v=20260907b">
+<script src="assets/app.js?v=20260907b"></script>
+```
+
+**Bump both version strings whenever you edit `app.js` or `styles.css`.** Any new value
+works; a date plus a letter is easy to read. Data files under `data/` do not need this,
+because `app.js` already fetches them with `cache: 'no-store'`.
+
+If someone reports the site behaving oddly after a deploy, have them hard-reload
+(Cmd/Ctrl + Shift + R) to confirm it is a stale asset before looking for a real bug.
+
 ## Updating the paper
 
 Replace the PDF while keeping the same filename:
@@ -218,13 +241,49 @@ The `*_coverage` columns are trade-coverage shares rather than exposure measures
 They appear as a `Trade coverage` variant inside their parent index, so the Index
 dropdown stays limited to the six substantive indices.
 
+## Country samples
+
+The panel carries every economy for which the indices can be computed (224). The
+paper restricts all of its tables and correlations to a smaller sample of 110. The
+Rankings and comparisons section has a tab to switch between them:
+
+- **Paper sample (110)** is the default. The top-economies table, the scatter, the
+  correlation readouts, and the rankings download all reproduce the published
+  numbers exactly.
+- **Full sample** shows every economy in the panel. Rankings and correlations here
+  will *not* match the paper, and the page says so.
+
+The membership list lives in `docs/data/paper_sample.json`, generated from
+`measures_panel_select_coverage.csv`. It cannot be derived from the shipped CSV alone:
+the paper drops China, the U.S., Hong Kong SAR, Macao SAR and a list of small states,
+then keeps economies whose ECI, ICI, CGI and SGI coverage all reach 25 percent.
+Filtering on coverage alone yields 118, not 110.
+
+Regenerate it whenever the sample changes:
+
+```bash
+python - <<'EOF'
+import csv, json
+src = "<path to>/measures_panel_select_coverage.csv"
+iso = sorted(r["iso3"].strip().upper() for r in csv.DictReader(open(src, encoding="utf-8-sig")))
+doc = json.load(open("docs/data/paper_sample.json"))
+doc["iso3"], doc["count"] = iso, len(iso)
+json.dump(doc, open("docs/data/paper_sample.json", "w"), ensure_ascii=False, indent=2)
+EOF
+```
+
+The map, the country panel, and the Product Explorer always show the full panel; only
+the Rankings section follows the tab. Ranks are recomputed within whichever sample is
+selected, since a rank is only meaningful relative to a stated sample.
+
 ## Rank convention
 
 For each selected index:
 
 - Rank 1 is the highest observed value.
 - Countries with missing values are excluded from the ranking for that index.
-- The website displays values as the raw CSV value multiplied by 100, matching the scale used in the draft tables.
+- The website displays values as the raw CSV value multiplied by 100, at two decimal places, matching the paper's tables.
+- Correlations are shown to three decimals, because near-zero values carry meaning here (ISI against ISI_broad is -0.005).
 
 ## Notes and limitations
 

@@ -1,10 +1,10 @@
 {
-  "title": "The Remains of Trade",
+  "title": "The Remains of the Trade",
   "subtitle": "Interactive exposure indices for third-country spillovers from the U.S.-China trade war",
   "authors": "Pol Antràs, Adrian Kulesza, and Andrea F. Presbitero",
-  "paper_version": "June 2026 draft",
+  "paper_version": "September 2026 draft",
   "paper_url": "paper/resettling_trade.pdf",
   "data_url": "data/measures_panel.csv",
-  "github_repo_url": "https://github.com/pantras-hash/resettling-trade",
+  "github_repo_url": "https://github.com/pantras-hash/remains_of_the_trade",
   "work_in_progress_note": "Work in progress. The paper and index values may be updated as the dataset and methodology evolve."
 }
