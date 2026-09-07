@@ -177,6 +177,28 @@ docs/data/products/<code>.json
 
 3. Commit and push the source CSVs and the regenerated JSON/products files.
 
+## Cache-busting when you change app.js or styles.css
+
+GitHub Pages serves everything with `cache-control: max-age=600` and no content
+hashing. The HTML and the assets expire independently, so a returning visitor can end
+up with a new `index.html` and a stale cached `app.js`. When those two disagree the
+page looks broken in confusing ways, for example the Variant dropdown rendering but
+never filling in.
+
+To avoid that, `docs/index.html` loads both assets with a version query:
+
+```html
+<link rel="stylesheet" href="assets/styles.css?v=20260907b">
+<script src="assets/app.js?v=20260907b"></script>
+```
+
+**Bump both version strings whenever you edit `app.js` or `styles.css`.** Any new value
+works; a date plus a letter is easy to read. Data files under `data/` do not need this,
+because `app.js` already fetches them with `cache: 'no-store'`.
+
+If someone reports the site behaving oddly after a deploy, have them hard-reload
+(Cmd/Ctrl + Shift + R) to confirm it is a stale asset before looking for a real bug.
+
 ## Updating the paper
 
 Replace the PDF while keeping the same filename:

@@ -243,8 +243,12 @@
 
   function populateVariantSelect(base) {
     const select = $('variantSelect');
-    if (!select) return;
+    // An older cached copy of this file has no variant support at all. If the page
+    // ever renders the Variant dropdown without it being filled, say so loudly
+    // rather than leaving the user with a dropdown that silently does nothing.
+    if (!select) { console.error('Variant dropdown missing from the page.'); return; }
     const variants = variantsFor(base);
+    if (!variants.length) console.error(`No variants found for base index "${base}". Check base/variant fields in data/index_metadata.json.`);
     select.innerHTML = variants.map(meta => `<option value="${escapeHtml(meta.id)}">${escapeHtml(`${meta.variant || meta.label || meta.id} (${meta.id})`)}</option>`).join('');
     select.disabled = variants.length <= 1;
   }
