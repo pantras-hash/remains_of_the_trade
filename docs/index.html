@@ -33,9 +33,10 @@
     </section>
 
     <section class="section shell" id="explorer">
-      <div class="section-heading"><p class="eyebrow">Interactive atlas</p><h2>Explore exposure by country and index</h2><p>Choose an index, hover over the map, or click/search for a country to see its value and rank in the cross-country distribution.</p></div>
-      <div class="control-card">
-        <div class="control-group grow"><label for="indexSelect">Index</label><select id="indexSelect"></select></div>
+      <div class="section-heading"><p class="eyebrow">Interactive atlas</p><h2>Explore exposure by country and index</h2><p>Choose an index and one of its variants, then hover over the map or click/search for a country to see its value and rank in the cross-country distribution.</p></div>
+      <div class="control-card quad">
+        <div class="control-group"><label for="indexSelect">Index</label><select id="indexSelect"></select></div>
+        <div class="control-group"><label for="variantSelect">Variant</label><select id="variantSelect"></select></div>
         <div class="control-group"><label for="countrySelect">Country</label><select id="countrySelect"></select></div>
         <div class="control-group"><label for="scaleSelect">Color scale</label><select id="scaleSelect"><option value="Viridis">Viridis</option><option value="Cividis">Cividis</option><option value="Blues">Blues</option><option value="YlOrRd">Yellow-orange-red</option><option value="RdBu">Red-blue</option></select></div>
       </div>

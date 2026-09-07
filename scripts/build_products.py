@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import csv
 import json
-import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -196,13 +195,21 @@ def main() -> int:
 
     OUT_BY_COUNTRY.write_text(json.dumps(by_country, separators=(",", ":")), encoding="utf-8")
 
-    if OUT_PRODUCTS_DIR.exists():
-        shutil.rmtree(OUT_PRODUCTS_DIR)
-    OUT_PRODUCTS_DIR.mkdir(parents=True)
+    # Write each file in place, then prune whatever is no longer needed. Deleting
+    # the whole directory first races with cloud-sync clients (Dropbox), which
+    # resurrect the files mid-rebuild as "conflicted copy" duplicates and can
+    # clobber freshly written ones.
+    OUT_PRODUCTS_DIR.mkdir(parents=True, exist_ok=True)
     for commodity, families in by_commodity.items():
         (OUT_PRODUCTS_DIR / f"{commodity}.json").write_text(
             json.dumps(families, separators=(",", ":")), encoding="utf-8"
         )
+    expected = {f"{commodity}.json" for commodity in by_commodity}
+    pruned = 0
+    for path in OUT_PRODUCTS_DIR.iterdir():
+        if path.name not in expected:
+            path.unlink()
+            pruned += 1
     OUT_PRODUCTS_INDEX.write_text(
         json.dumps(sorted(by_commodity.keys()), separators=(",", ":")), encoding="utf-8"
     )
@@ -217,6 +224,18 @@ def main() -> int:
     price_shocks_table = build_price_shocks_table(labels)
     OUT_PRICE_SHOCKS_TABLE.write_text(json.dumps(price_shocks_table, separators=(",", ":")), encoding="utf-8")
 
+    on_disk = {path.name for path in OUT_PRODUCTS_DIR.iterdir()}
+    if on_disk != expected:
+        missing = sorted(expected - on_disk)[:5]
+        stale = sorted(on_disk - expected)[:5]
+        print(
+            f"ERROR: {OUT_PRODUCTS_DIR.relative_to(ROOT)} does not match products_index.json "
+            f"({len(expected - on_disk)} missing, {len(on_disk - expected)} stale). "
+            f"Missing e.g. {missing}; stale e.g. {stale}. "
+            "If this repository lives in a synced folder, pause syncing and re-run."
+        )
+        return 1
+
     products_size_kb = sum(p.stat().st_size for p in OUT_PRODUCTS_DIR.glob("*.json")) / 1024
     print(f"Countries: {len(by_country)}")
     print(f"Distinct commodities (Product Explorer): {len(by_commodity)}")
@@ -227,7 +246,7 @@ def main() -> int:
     print(f"Wrote {OUT_PRODUCTS_INDEX.relative_to(ROOT)} ({OUT_PRODUCTS_INDEX.stat().st_size / 1024:.0f} KB)")
     print(f"Wrote {OUT_HS_LABELS.relative_to(ROOT)} ({OUT_HS_LABELS.stat().st_size / 1024:.0f} KB)")
     print(f"Wrote {OUT_PRICE_SHOCKS_TABLE.relative_to(ROOT)} ({OUT_PRICE_SHOCKS_TABLE.stat().st_size / 1024:.0f} KB)")
-    print(f"Wrote {len(by_commodity)} files under {OUT_PRODUCTS_DIR.relative_to(ROOT)} ({products_size_kb:.0f} KB total)")
+    print(f"Wrote {len(by_commodity)} files under {OUT_PRODUCTS_DIR.relative_to(ROOT)} ({products_size_kb:.0f} KB total); pruned {pruned}")
     return 0
 
 

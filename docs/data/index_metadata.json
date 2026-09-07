@@ -1,10 +1,44 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "rank_rule": "Rank 1 is the highest observed value for the selected index.",
   "default_index": "ECI",
+  "families": [
+    {
+      "id": "ECI",
+      "label": "Export competition",
+      "description": "Exposure of a country's exports to increased Chinese competition in third markets."
+    },
+    {
+      "id": "ESI",
+      "label": "Export similarity",
+      "description": "How closely a country's export structure resembles China's outside the U.S. and China."
+    },
+    {
+      "id": "ICI",
+      "label": "Import competition",
+      "description": "Exposure of domestic producers to redirected Chinese goods in their own market."
+    },
+    {
+      "id": "ISI",
+      "label": "Import similarity",
+      "description": "How closely a country's imports from China resemble what the U.S. imports from China."
+    },
+    {
+      "id": "CGI",
+      "label": "Consumer opportunities",
+      "description": "Exposure of consumers to lower import prices from redirected Chinese goods."
+    },
+    {
+      "id": "SGI",
+      "label": "Sourcing opportunities",
+      "description": "Exposure of downstream producers to cheaper Chinese intermediate inputs."
+    }
+  ],
   "indices": [
     {
       "id": "ECI",
+      "base": "ECI",
+      "variant": "Baseline",
       "label": "Export Competition Index (ECI)",
       "short_label": "ECI",
       "family": "Export competition",
@@ -13,6 +47,8 @@
     },
     {
       "id": "ECI_prod",
+      "base": "ECI",
+      "variant": "Product-level aggregation",
       "label": "Export Competition Index, product-level variant (ECI_prod)",
       "short_label": "ECI_prod",
       "family": "Export competition",
@@ -21,6 +57,8 @@
     },
     {
       "id": "ECI_long",
+      "base": "ECI",
+      "variant": "Long tariff window",
       "label": "Export Competition Index, long-window variant (ECI_long)",
       "short_label": "ECI_long",
       "family": "Export competition",
@@ -29,6 +67,8 @@
     },
     {
       "id": "ECI_basic",
+      "base": "ECI",
+      "variant": "Basic price shock",
       "label": "Export Competition Index, basic variant (ECI_basic)",
       "short_label": "ECI_basic",
       "family": "Export competition",
@@ -37,6 +77,8 @@
     },
     {
       "id": "ECI_basic_full",
+      "base": "ECI",
+      "variant": "Basic, full coverage",
       "label": "Export Competition Index, basic full-coverage variant (ECI_basic_full)",
       "short_label": "ECI_basic_full",
       "family": "Export competition",
@@ -44,7 +86,19 @@
       "unit": "index points"
     },
     {
+      "id": "ECI_coverage",
+      "base": "ECI",
+      "variant": "Trade coverage",
+      "label": "Export Competition Index, trade coverage (ECI_coverage)",
+      "short_label": "ECI_coverage",
+      "family": "Export competition",
+      "description": "Share of the country's relevant trade covered by the products entering the export competition index. A diagnostic, not an exposure measure: higher values mean the index is built on a more complete product set.",
+      "unit": "% of trade"
+    },
+    {
       "id": "ESI",
+      "base": "ESI",
+      "variant": "Baseline",
       "label": "Export Similarity Index (ESI)",
       "short_label": "ESI",
       "family": "Export similarity",
@@ -53,6 +107,8 @@
     },
     {
       "id": "ESI_alt",
+      "base": "ESI",
+      "variant": "Destination-weighted",
       "label": "Export Similarity Index, destination-weighted variant (ESI_alt)",
       "short_label": "ESI_alt",
       "family": "Export similarity",
@@ -61,6 +117,8 @@
     },
     {
       "id": "ESI_prod",
+      "base": "ESI",
+      "variant": "Product composition only",
       "label": "Export Similarity Index, product-only variant (ESI_prod)",
       "short_label": "ESI_prod",
       "family": "Export similarity",
@@ -69,6 +127,8 @@
     },
     {
       "id": "ESI_dest",
+      "base": "ESI",
+      "variant": "Destination composition only",
       "label": "Export Similarity Index, destination-only variant (ESI_dest)",
       "short_label": "ESI_dest",
       "family": "Export similarity",
@@ -77,6 +137,8 @@
     },
     {
       "id": "ICI",
+      "base": "ICI",
+      "variant": "Baseline",
       "label": "Import Competition Index (ICI)",
       "short_label": "ICI",
       "family": "Import competition",
@@ -85,6 +147,8 @@
     },
     {
       "id": "ICI_long",
+      "base": "ICI",
+      "variant": "Long tariff window",
       "label": "Import Competition Index, long-window variant (ICI_long)",
       "short_label": "ICI_long",
       "family": "Import competition",
@@ -93,6 +157,8 @@
     },
     {
       "id": "ICI_basic",
+      "base": "ICI",
+      "variant": "Basic price shock",
       "label": "Import Competition Index, basic variant (ICI_basic)",
       "short_label": "ICI_basic",
       "family": "Import competition",
@@ -101,6 +167,8 @@
     },
     {
       "id": "ICI_basic_full",
+      "base": "ICI",
+      "variant": "Basic, full coverage",
       "label": "Import Competition Index, basic full-coverage variant (ICI_basic_full)",
       "short_label": "ICI_basic_full",
       "family": "Import competition",
@@ -108,7 +176,39 @@
       "unit": "index points"
     },
     {
+      "id": "ICI_upstream",
+      "base": "ICI",
+      "variant": "Upstream goods",
+      "label": "Import Competition Index, upstream goods (ICI_upstream)",
+      "short_label": "ICI_upstream",
+      "family": "Import competition",
+      "description": "Import competition index restricted to more upstream goods, using the upstreamness classification.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI_downstream",
+      "base": "ICI",
+      "variant": "Downstream goods",
+      "label": "Import Competition Index, downstream goods (ICI_downstream)",
+      "short_label": "ICI_downstream",
+      "family": "Import competition",
+      "description": "Import competition index restricted to more downstream or final goods, using the upstreamness classification.",
+      "unit": "index points"
+    },
+    {
+      "id": "ICI_coverage",
+      "base": "ICI",
+      "variant": "Trade coverage",
+      "label": "Import Competition Index, trade coverage (ICI_coverage)",
+      "short_label": "ICI_coverage",
+      "family": "Import competition",
+      "description": "Share of the country's relevant trade covered by the products entering the import competition index. A diagnostic, not an exposure measure: higher values mean the index is built on a more complete product set.",
+      "unit": "% of trade"
+    },
+    {
       "id": "ISI",
+      "base": "ISI",
+      "variant": "Baseline",
       "label": "Import Similarity Index (ISI)",
       "short_label": "ISI",
       "family": "Import similarity",
@@ -117,6 +217,8 @@
     },
     {
       "id": "ISI_prod",
+      "base": "ISI",
+      "variant": "Product composition",
       "label": "Import Similarity Index, product variant (ISI_prod)",
       "short_label": "ISI_prod",
       "family": "Import similarity",
@@ -125,6 +227,8 @@
     },
     {
       "id": "ISI_broad",
+      "base": "ISI",
+      "variant": "Broad, all destinations",
       "label": "Import Similarity Index, broad variant (ISI_broad)",
       "short_label": "ISI_broad",
       "family": "Import similarity",
@@ -133,6 +237,8 @@
     },
     {
       "id": "CGI",
+      "base": "CGI",
+      "variant": "Baseline",
       "label": "Consumer Gains Index (CGI)",
       "short_label": "CGI",
       "family": "Consumer opportunities",
@@ -141,6 +247,8 @@
     },
     {
       "id": "CGI_long",
+      "base": "CGI",
+      "variant": "Long tariff window",
       "label": "Consumer Gains Index, long-window variant (CGI_long)",
       "short_label": "CGI_long",
       "family": "Consumer opportunities",
@@ -149,6 +257,8 @@
     },
     {
       "id": "CGI_basic",
+      "base": "CGI",
+      "variant": "Basic price shock",
       "label": "Consumer Gains Index, basic variant (CGI_basic)",
       "short_label": "CGI_basic",
       "family": "Consumer opportunities",
@@ -157,6 +267,8 @@
     },
     {
       "id": "CGI_basic_full",
+      "base": "CGI",
+      "variant": "Basic, full coverage",
       "label": "Consumer Gains Index, basic full-coverage variant (CGI_basic_full)",
       "short_label": "CGI_basic_full",
       "family": "Consumer opportunities",
@@ -165,6 +277,8 @@
     },
     {
       "id": "CGI_upstream",
+      "base": "CGI",
+      "variant": "Upstream goods",
       "label": "Consumer Gains Index, upstream goods (CGI_upstream)",
       "short_label": "CGI_upstream",
       "family": "Consumer opportunities",
@@ -173,6 +287,8 @@
     },
     {
       "id": "CGI_downstream",
+      "base": "CGI",
+      "variant": "Downstream goods",
       "label": "Consumer Gains Index, downstream goods (CGI_downstream)",
       "short_label": "CGI_downstream",
       "family": "Consumer opportunities",
@@ -180,7 +296,19 @@
       "unit": "index points"
     },
     {
+      "id": "CGI_coverage",
+      "base": "CGI",
+      "variant": "Trade coverage",
+      "label": "Consumer Gains Index, trade coverage (CGI_coverage)",
+      "short_label": "CGI_coverage",
+      "family": "Consumer opportunities",
+      "description": "Share of the country's relevant trade covered by the products entering the consumer gains index. A diagnostic, not an exposure measure: higher values mean the index is built on a more complete product set.",
+      "unit": "% of trade"
+    },
+    {
       "id": "SGI",
+      "base": "SGI",
+      "variant": "Baseline",
       "label": "Sourcing Gains Index (SGI)",
       "short_label": "SGI",
       "family": "Sourcing opportunities",
@@ -189,6 +317,8 @@
     },
     {
       "id": "SGI_long",
+      "base": "SGI",
+      "variant": "Long tariff window",
       "label": "Sourcing Gains Index, long-window variant (SGI_long)",
       "short_label": "SGI_long",
       "family": "Sourcing opportunities",
@@ -197,6 +327,8 @@
     },
     {
       "id": "SGI_basic",
+      "base": "SGI",
+      "variant": "Basic price shock",
       "label": "Sourcing Gains Index, basic variant (SGI_basic)",
       "short_label": "SGI_basic",
       "family": "Sourcing opportunities",
@@ -205,11 +337,23 @@
     },
     {
       "id": "SGI_basic_full",
+      "base": "SGI",
+      "variant": "Basic, full coverage",
       "label": "Sourcing Gains Index, basic full-coverage variant (SGI_basic_full)",
       "short_label": "SGI_basic_full",
       "family": "Sourcing opportunities",
       "description": "Basic sourcing gains index extended to a broader product set where possible.",
       "unit": "index points"
+    },
+    {
+      "id": "SGI_coverage",
+      "base": "SGI",
+      "variant": "Trade coverage",
+      "label": "Sourcing Gains Index, trade coverage (SGI_coverage)",
+      "short_label": "SGI_coverage",
+      "family": "Sourcing opportunities",
+      "description": "Share of the country's relevant trade covered by the products entering the sourcing gains index. A diagnostic, not an exposure measure: higher values mean the index is built on a more complete product set.",
+      "unit": "% of trade"
     }
   ]
 }

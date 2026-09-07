@@ -17,7 +17,7 @@ docs/
   assets/app.js                     Interactive map, rankings, scatter plot, product explorer, CSV parsing
   assets/favicon.svg                Small site icon
   data/measures_panel.csv           Current country-level index values
-  data/index_metadata.json          Labels, families, and descriptions for each index
+  data/index_metadata.json          Base index, variant, labels, and descriptions for each column
   data/country_names.json           ISO3-to-country-name lookup table
   data/top_products_wide.csv        Source data: top-ranked products per country per index (not fetched by the site directly)
   data/price_shocks_export.csv      Source data: per-commodity price shock estimates (not fetched by the site directly)
@@ -33,6 +33,22 @@ scripts/
   build_products.py                 Builds the product-explorer JSON files from top_products_wide.csv, price_shocks_export.csv, and hs6_descriptions.csv
 README.md                           This file
 ```
+
+## Where the data comes from
+
+The three source files are produced by the empirics pipeline and copied in from
+`~/Dropbox/Trade_China_shock_2.0/Empirics/Final/`:
+
+| Source file | Copied to |
+|---|---|
+| `measures_panel.csv` | `docs/data/measures_panel.csv` |
+| `top_products_wide.csv` | `docs/data/top_products_wide.csv` |
+| `price_shock.csv` | `docs/data/price_shocks_export.csv` |
+
+Note the third rename. The site keeps the name `price_shocks_export.csv`, which is
+what `scripts/build_products.py`, the download card, and this README refer to.
+
+`docs/data/hs6_descriptions.csv` comes from `Empirics/Data/raw/` and changes rarely.
 
 ## Local preview
 
@@ -105,7 +121,10 @@ iso3
 docs/data/index_metadata.json
 ```
 
-This file controls the nice labels, grouping, and descriptions. If a new column has no metadata entry, the website will still work, but it will show the raw column name and put the variable under `Other`.
+This file controls the labels, grouping, and descriptions. Give every new column a
+`base` and a `variant` so it appears under the right index in the Explorer's two
+dropdowns. A column with no metadata entry still works, but it falls back to the
+prefix before its first underscore and shows its raw name.
 
 5. Validate the updated data locally:
 
@@ -135,7 +154,7 @@ browser.
 
 ```text
 docs/data/top_products_wide.csv     top-ranked products per country, per index
-docs/data/price_shocks_export.csv   per-commodity price-shock estimates
+docs/data/price_shocks_export.csv   per-commodity price-shock estimates (source: price_shock.csv)
 docs/data/hs6_descriptions.csv      HS6 code -> description lookup
 ```
 
@@ -173,9 +192,31 @@ If you want to use a different filename, also edit `docs/site_config.json` and c
 For light edits, use these files:
 
 - `docs/site_config.json`: title, subtitle, authors, paper version, paper link, data link, and work-in-progress note.
-- `docs/data/index_metadata.json`: index labels, families, and descriptions.
+- `docs/data/index_metadata.json`: base indices, variant labels, and descriptions.
 - `docs/index.html`: methodology cards, download cards, and page structure.
 - `docs/assets/styles.css`: colors, spacing, typography, and layout.
+
+## How the Explorer's index selector works
+
+The Explorer has two linked dropdowns. **Index** picks one of the six base indices
+(ECI, ESI, ICI, ISI, CGI, SGI). **Variant** picks the specific column within that
+base. Both are driven by `docs/data/index_metadata.json`:
+
+- The `families` array defines the six base indices and the order they appear in.
+- Each entry in `indices` carries a `base` (which family it belongs to) and a
+  `variant` (its label in the Variant dropdown, for example `Baseline` or
+  `Long tariff window`).
+- Variants appear in the order they are listed in `indices`. The first variant of a
+  base is what the Explorer selects when you switch to that base, so keep
+  `Baseline` first.
+
+If a CSV column has no metadata entry, the site falls back to the text before the
+first underscore as its base, so a stray `ECI_newthing` column still lands under
+ECI with its raw name as the variant label.
+
+The `*_coverage` columns are trade-coverage shares rather than exposure measures.
+They appear as a `Trade coverage` variant inside their parent index, so the Index
+dropdown stays limited to the six substantive indices.
 
 ## Rank convention
 
