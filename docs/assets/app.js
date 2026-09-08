@@ -19,6 +19,7 @@
     paperSample: null,
     sample: 'paper',
     selectedProduct: null,
+    countryProductIndex: 'ECI',
     productIndex: 'ECI',
     productMetric: 'share',
     productCache: {}
@@ -92,6 +93,7 @@
       $('countrySelect').value = state.selectedCountry;
       populateProductSelect();
       if (state.selectedProduct) $('productSelect').value = state.selectedProduct;
+      $('countryProductIndexSelect').value = state.countryProductIndex;
       $('productIndexSelect').value = state.productIndex;
       $('productMetricSelect').value = state.productMetric;
       renderAll();
@@ -194,13 +196,10 @@
     setText('siteSubtitle', cfg.subtitle || 'Interactive exposure indices');
     setText('siteAuthors', cfg.authors || '');
     setText('footerAuthors', cfg.authors || '');
-    setText('paperVersion', (cfg.paper_version || 'June 2026').replace(' draft', ''));
     setText('downloadPaperVersion', cfg.paper_version || 'June 2026 draft');
     setText('wipNotice', cfg.work_in_progress_note || 'Work in progress.');
     ['paperLink', 'navPaperLink', 'downloadPaperCard'].forEach(id => { const el = $(id); if (el) el.href = cfg.paper_url || 'paper/resettling_trade.pdf'; });
     ['dataLink', 'downloadDataCard'].forEach(id => { const el = $(id); if (el) el.href = cfg.data_url || 'data/measures_panel.csv'; });
-    setText('countryCount', state.rows.length.toString());
-    setText('indexCount', state.indices.length.toString());
     setText('year', new Date().getFullYear().toString());
   }
 
@@ -288,6 +287,12 @@
       onSelectedIndexChanged();
     });
     $('countrySelect').addEventListener('change', e => { state.selectedCountry = e.target.value; renderCountryPanel(); });
+    const countryProductIndexSelect = $('countryProductIndexSelect');
+    if (countryProductIndexSelect) countryProductIndexSelect.addEventListener('change', e => {
+      state.countryProductIndex = e.target.value;
+      renderCountryPanel();
+    });
+    bindDictionary();
     $('scaleSelect').addEventListener('change', () => renderMap());
     $('compareSelect').addEventListener('change', e => { state.compareIndex = e.target.value; renderScatter(); });
     $('resetViewButton').addEventListener('click', () => renderMap());
@@ -313,8 +318,6 @@
   function onSelectedIndexChanged() {
     if (state.compareIndex === state.selectedIndex) state.compareIndex = chooseCompareIndex(state.selectedIndex);
     $('compareSelect').value = state.compareIndex;
-    if (valueFor(state.selectedCountry, state.selectedIndex) === null) state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
-    $('countrySelect').value = state.selectedCountry;
     renderAll();
   }
 
@@ -350,12 +353,10 @@
 
   function renderAll() {
     const meta = metaFor(state.selectedIndex);
-    setText('defaultIndexText', meta.label);
     setText('mapTitle', meta.label);
     setText('mapSubtitle', meta.unit ? `Units: ${meta.unit}. ${meta.description || ''}`.trim() : (meta.description || 'Hover over a country for details.'));
     renderMap();
     renderCountryPanel();
-    renderSummary();
     renderSampleTabs();
     renderTopTable();
     renderScatter();
@@ -387,52 +388,57 @@
       if (map.removeAllListeners) map.removeAllListeners('plotly_click');
       if (map.on) map.on('plotly_click', ev => {
         const iso = ev.points?.[0]?.location;
-        if (iso) { state.selectedCountry = iso; $('countrySelect').value = iso; renderCountryPanel(); }
+        if (!iso) return;
+        state.selectedCountry = iso;
+        $('countrySelect').value = iso;
+        renderCountryPanel();
+        document.getElementById('country')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   }
 
+  // The country profile reports only the four headline channels. Variants and the
+  // similarity indices live in the by-index explorer and the data dictionary.
   function renderCountryPanel() {
-    const id = state.selectedIndex;
     const row = state.rows.find(r => r.iso3 === state.selectedCountry) || state.rows[0];
     if (!row) return;
     state.selectedCountry = row.iso3;
-    const stat = row.stat[id];
-    setText('selectedCountryName', row.country);
-    setText('selectedCountryCode', row.iso3);
-    const meta = metaFor(id);
-    setText('selectedValue', formatValue(row.values[id], id));
-    setText('selectedValueUnit', meta.unit || '');
-    setText('selectedRank', stat ? `${stat.rank} of ${stat.n}` : 'NA');
-    setText('selectedIndexDescription', metaFor(id).description || '');
-    const tbody = $('countryProfileTable').querySelector('tbody');
-    tbody.innerHTML = state.indices.map(meta => {
-      const val = row.values[meta.id];
-      const s = row.stat[meta.id];
-      return `<tr><td>${escapeHtml(meta.short_label || meta.id)}</td><td>${formatValue(val, meta.id)}</td><td>${s ? s.rank + ' / ' + s.n : 'NA'}</td></tr>`;
-    }).join('');
-    renderTopProducts(row, id);
+    setText('countryProfileName', row.country);
+    setText('countryProfileCode', row.iso3);
+    const wrap = $('countryIndexSummary');
+    if (wrap) {
+      wrap.innerHTML = BASE_PRODUCT_INDICES.map(id => {
+        const meta = metaFor(id);
+        const stat = row.stat[id];
+        const family = (meta.family || '').replace(/^./, c => c.toUpperCase());
+        return `<article class="index-summary-card">
+          <p class="index-summary-tag">${escapeHtml(id)}</p>
+          <h4>${escapeHtml(family || meta.label || id)}</h4>
+          <p class="index-summary-value">${formatValue(row.values[id], id)}</p>
+          <p class="index-summary-unit">${escapeHtml(meta.unit || '')}</p>
+          <p class="index-summary-rank">Rank <strong>${stat ? stat.rank : 'NA'}</strong>${stat ? ` of ${stat.n}` : ''}</p>
+        </article>`;
+      }).join('');
+    }
+    renderTopProducts(row, state.countryProductIndex);
   }
 
   function renderTopProducts(row, id) {
     const wrap = $('topProductsWrap');
     if (!wrap) return;
-    if (!BASE_PRODUCT_INDICES.includes(id)) { wrap.hidden = true; return; }
-    const entries = (state.topProductsByCountry[row.iso3] || {})[id] || [];
-    if (!entries.length) { wrap.hidden = true; return; }
-    wrap.hidden = false;
+    const meta = metaFor(id);
+    const tbody = $('topProductsTable').querySelector('tbody');
     setText('topProductsHeading', `Top products for ${row.country} (${id})`);
-    $('topProductsTable').querySelector('tbody').innerHTML = entries.map(e =>
+    const entries = (state.topProductsByCountry[row.iso3] || {})[id] || [];
+    if (!entries.length) {
+      setText('topProductsCaption', `No product breakdown is available for ${row.country} under ${id}.`);
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No product-level data for this country and index.</td></tr>';
+      return;
+    }
+    setText('topProductsCaption', `Products contributing most to ${row.country}'s ${meta.label || id}.`);
+    tbody.innerHTML = entries.map(e =>
       `<tr><td>${e.rank}</td><td>${escapeHtml(e.commodity)} <span class="muted">${escapeHtml(state.hsLabels[e.commodity] || '')}</span></td><td>${e.share === null ? 'NA' : e.share.toFixed(2) + '%'}</td><td>${e.contribution === null ? 'NA' : formatContribution(e.contribution)}</td></tr>`
     ).join('');
-  }
-
-  function renderSummary() {
-    const id = state.selectedIndex;
-    const s = state.stats[id] || {};
-    setText('observedCount', s.n ? s.n.toString() : '-');
-    setText('meanValue', s.mean !== null ? formatValue(s.mean, id) : '-');
-    setText('medianValue', s.median !== null ? formatValue(s.median, id) : '-');
   }
 
   // The paper restricts every table and correlation to 110 economies. The map and
@@ -466,7 +472,12 @@
     $('topTable').querySelector('tbody').innerHTML = rows.map((row, i) => {
       return `<tr class="clickable" data-iso="${row.iso3}"><td>${i + 1}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td></tr>`;
     }).join('');
-    $('topTable').querySelectorAll('tr[data-iso]').forEach(tr => tr.addEventListener('click', () => { state.selectedCountry = tr.dataset.iso; $('countrySelect').value = state.selectedCountry; renderCountryPanel(); document.querySelector('#explorer').scrollIntoView({ behavior: 'smooth' }); }));
+    $('topTable').querySelectorAll('tr[data-iso]').forEach(tr => tr.addEventListener('click', () => {
+      state.selectedCountry = tr.dataset.iso;
+      $('countrySelect').value = state.selectedCountry;
+      renderCountryPanel();
+      document.querySelector('#country').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
   }
 
   function renderScatter() {
@@ -484,7 +495,14 @@
     Plotly.newPlot('scatter', data, layout, { responsive: true, displaylogo: false }).then(() => {
       const scatter = $('scatter');
       if (scatter.removeAllListeners) scatter.removeAllListeners('plotly_click');
-      if (scatter.on) scatter.on('plotly_click', ev => { const iso = ev.points?.[0]?.customdata; if (iso) { state.selectedCountry = iso; $('countrySelect').value = iso; renderCountryPanel(); } });
+      if (scatter.on) scatter.on('plotly_click', ev => {
+        const iso = ev.points?.[0]?.customdata;
+        if (!iso) return;
+        state.selectedCountry = iso;
+        $('countrySelect').value = iso;
+        renderCountryPanel();
+        document.getElementById('country')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   }
 
@@ -613,6 +631,42 @@
         ? (state.paperSample?.criteria || 'The sample used throughout the paper.')
         : `Every economy in the panel, including those the paper excludes. Rankings and correlations here will not match the published tables.`;
     }
+  }
+
+  // The dictionary is a hidden panel rather than a page section, opened from the
+  // links scattered through the sections that reference index definitions.
+  function bindDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    document.querySelectorAll('[data-open-dictionary]').forEach(link => link.addEventListener('click', e => {
+      e.preventDefault();
+      openDictionary();
+    }));
+    $('dictClose')?.addEventListener('click', closeDictionary);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeDictionary(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.hidden) closeDictionary(); });
+    // Deep link support. The hash can also arrive after load (an in-page anchor, or
+    // a client that applies it post-navigation), so watch for it changing too.
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#data-dictionary') openDictionary();
+    });
+    if (location.hash === '#data-dictionary') openDictionary();
+  }
+
+  function openDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.classList.add('dict-open');
+    $('dictClose')?.focus();
+  }
+
+  function closeDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.body.classList.remove('dict-open');
+    if (location.hash === '#data-dictionary') history.replaceState(null, '', location.pathname + location.search);
   }
 
   function renderDictionary() {
