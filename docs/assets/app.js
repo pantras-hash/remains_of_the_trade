@@ -7,7 +7,6 @@
     rows: [],
     columns: [],
     indices: [],
-    stats: {},
     selectedIndex: null,
     selectedBase: null,
     selectedCountry: null,
@@ -29,6 +28,9 @@
   // Product the Explorer opens on. Falls back to the first available code if this
   // one drops out of products_index.json on a rebuild.
   const DEFAULT_PRODUCT = '851712';
+  // Country the profile section opens on. Falls back to the first row if this code
+  // is not in the panel.
+  const DEFAULT_COUNTRY = 'VNM';
 
   const $ = (id) => document.getElementById(id);
   const isMissing = (value) => value === null || value === undefined || value === '' || String(value).trim().toUpperCase() === 'NA' || String(value).trim().toUpperCase() === 'NAN';
@@ -84,7 +86,7 @@
       state.selectedIndex = chooseDefaultIndex();
       state.selectedBase = baseOf(metaFor(state.selectedIndex));
       state.compareIndex = chooseCompareIndex(state.selectedIndex);
-      state.selectedCountry = chooseDefaultCountry(state.selectedIndex);
+      state.selectedCountry = chooseDefaultCountry();
       state.selectedProduct = state.productsIndex.includes(DEFAULT_PRODUCT) ? DEFAULT_PRODUCT : (state.productsIndex[0] || null);
       $('indexSelect').value = state.selectedBase;
       populateVariantSelect(state.selectedBase);
@@ -176,16 +178,6 @@
         const greater = values.filter(d => d.value > value).length;
         row.stat[id] = { rank: greater + 1, n };
       });
-      const sorted = values.map(d => d.value).sort((a, b) => a - b);
-      const sum = sorted.reduce((a, b) => a + b, 0);
-      state.stats[id] = {
-        n,
-        mean: n ? sum / n : null,
-        median: n ? (sorted[Math.floor((n - 1) / 2)] + sorted[Math.ceil((n - 1) / 2)]) / 2 : null,
-        min: n ? sorted[0] : null,
-        max: n ? sorted[n - 1] : null,
-        top: values.sort((a, b) => b.value - a.value)[0]?.row || null
-      };
     }
   }
 
@@ -340,11 +332,8 @@
     const preferred = ['ESI', 'ICI', 'CGI', 'SGI', 'ISI'].find(x => x !== id && state.indices.some(m => m.id === x));
     return preferred || state.indices.find(m => m.id !== id)?.id || id;
   }
-  function chooseDefaultCountry(id) {
-    const vnm = state.rows.find(row => row.iso3 === 'VNM' && row.values[id] !== null);
-    if (vnm) return 'VNM';
-    const top = state.stats[id]?.top;
-    return top ? top.iso3 : state.rows[0]?.iso3;
+  function chooseDefaultCountry() {
+    return state.rows.some(row => row.iso3 === DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : state.rows[0]?.iso3;
   }
   function valueFor(iso, id) {
     const row = state.rows.find(r => r.iso3 === iso);
