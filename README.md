@@ -14,7 +14,7 @@ docs/
   index.html                        Website page
   site_config.json                  Site title, paper/data links, version note
   assets/styles.css                 Visual styling
-  assets/app.js                     Interactive map, rankings, scatter plot, product explorer, CSV parsing
+  assets/app.js                     Interactive map, country profile, rankings, scatter plot, product explorer, CSV parsing
   assets/favicon.svg                Small site icon
   data/measures_panel.csv           Current country-level index values
   data/index_metadata.json          Base index, variant, labels, and descriptions for each column
@@ -240,6 +240,28 @@ ECI with its raw name as the variant label.
 The `*_coverage` columns are trade-coverage shares rather than exposure measures.
 They appear as a `Trade coverage` variant inside their parent index, so the Index
 dropdown stays limited to the six substantive indices.
+
+## Page structure
+
+The page runs in this order:
+
+1. **Methodology** - the four channels the paper distinguishes, and how to read ranks.
+2. **Explore by index** (`#explorer`) - index, variant and colour-scale pickers over a
+   full-width world map. Clicking a country jumps to its profile below.
+3. **Explore by country** (`#country`) - a country picker, the four headline channels
+   (ECI, ICI, CGI, SGI) with value, units and rank, then a top-products table with its
+   own index selector. Variants and the similarity indices deliberately do not appear
+   here; they belong to the by-index explorer and the data dictionary.
+4. **Rankings and comparisons** (`#rankings`) - top economies and the scatter, with the
+   paper/full sample tab.
+5. **Product explorer** (`#products`) - which economies a given product most affects.
+6. **Downloads** (`#downloads`).
+
+The **data dictionary** is not a section. It is a hidden overlay opened by the
+`See the data dictionary` links in the by-index, by-country and rankings sections, or
+by loading `#data-dictionary` directly. It closes on Escape, on the close button, or by
+clicking outside the panel. Any link with a `data-open-dictionary` attribute opens it,
+so new links need no extra JavaScript.
 
 ## Country samples
 
