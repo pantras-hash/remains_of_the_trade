@@ -6,7 +6,7 @@
   <title>The Remains of Trade | Exposure Indices</title>
   <meta name="description" content="Interactive country-level exposure indices for third-country spillovers from the U.S.-China trade war.">
   <link rel="preconnect" href="https://cdn.plot.ly">
-  <link rel="stylesheet" href="assets/styles.css?v=20260908f">
+  <link rel="stylesheet" href="assets/styles.css?v=20260908g">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -64,7 +64,11 @@
     </section>
 
     <section class="section shell" id="explorer">
-      <div class="section-heading"><p class="eyebrow">Interactive atlas</p><h2>Explore exposure by index</h2><p>Choose an index and one of its variants, then hover over the map to compare economies. Click any country to open its profile below. <a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a> for the full definition of every column.</p></div>
+      <div class="section-heading">
+        <p class="eyebrow">Interactive atlas</p>
+        <h2>Explore exposure by index</h2>
+        <p>Choose an index and one of its variants, then hover over the map to compare economies. Click any country to open its profile below. <a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a> for the full definition of every column.</p>
+      </div>
       <div class="control-card trio">
         <div class="control-group"><label for="indexSelect">Index</label><select id="indexSelect"></select></div>
         <div class="control-group"><label for="variantSelect">Variant</label><select id="variantSelect"></select></div>
@@ -74,7 +78,11 @@
     </section>
 
     <section class="section shell" id="country">
-      <div class="section-heading"><p class="eyebrow">Country profile</p><h2>Explore exposure by country</h2><p>Select an economy to see where it stands on the four main channels, then inspect the products driving each one. <a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a>.</p></div>
+      <div class="section-heading">
+        <p class="eyebrow">Country profile</p>
+        <h2>Explore exposure by country</h2>
+        <p>Select an economy to see where it stands on the four main channels, then inspect the products driving each one. <a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a>.</p>
+      </div>
       <div class="control-card single">
         <div class="control-group grow"><label for="countrySelect">Country</label><select id="countrySelect"></select></div>
       </div>
@@ -92,7 +100,10 @@
     </section>
 
     <section class="section shell" id="rankings">
-      <div class="section-heading compact"><p class="eyebrow">Rankings and comparisons</p><h2>Distribution, top economies, and cross-index relationships</h2></div><div class="sample-bar"><div class="sample-tabs" role="tablist" aria-label="Country sample"><button type="button" class="sample-tab is-active" role="tab" aria-selected="true" data-sample="paper" id="sampleTabPaper">Paper sample</button><button type="button" class="sample-tab" role="tab" aria-selected="false" data-sample="full" id="sampleTabFull">Full sample</button></div><p class="sample-note muted" id="sampleNote"></p><p class="dict-link-wrap"><a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a></p></div>
+      <div class="section-heading compact">
+        <p class="eyebrow">Rankings and comparisons</p>
+        <h2>Distribution, top economies, and cross-index relationships</h2>
+      </div><div class="sample-bar"><div class="sample-tabs" role="tablist" aria-label="Country sample"><button type="button" class="sample-tab is-active" role="tab" aria-selected="true" data-sample="paper" id="sampleTabPaper">Paper sample</button><button type="button" class="sample-tab" role="tab" aria-selected="false" data-sample="full" id="sampleTabFull">Full sample</button></div><p class="sample-note muted" id="sampleNote"></p><p class="dict-link-wrap"><a class="dict-link" href="#data-dictionary" data-open-dictionary>See the data dictionary</a></p></div>
       <div class="grid one-one">
         <div class="card"><div class="card-head"><div><h3>Top economies</h3><p id="topTableCaption">Highest values for the selected index.</p></div><button class="text-button" id="downloadRankingsButton">Download rankings</button></div><div class="table-wrap rankings-table-wrap"><table id="topTable"><thead><tr><th>Rank</th><th>Country</th><th>Value</th></tr></thead><tbody></tbody></table></div></div>
         <div class="card"><div class="card-head"><div><h3>Relationship with another index</h3><p>Pick a comparison index to inspect correlations visually.</p></div><div class="control-group inline"><label for="compareSelect">Y-axis</label><select id="compareSelect"></select></div></div><div id="scatter" class="scatter"></div><div class="stat-list correlation-list" id="correlationStats"><div><span class="stat-label">Pearson correlation</span><span class="stat-value" id="pearsonValue">-</span></div><div><span class="stat-label">Rank (Spearman) correlation</span><span class="stat-value" id="spearmanValue">-</span></div></div></div>
@@ -100,7 +111,11 @@
     </section>
 
     <section class="section shell" id="products">
-      <div class="section-heading"><p class="eyebrow">Product explorer</p><h2>See which countries are most affected by a product</h2><p>Choose a product code and an index family to see which countries have that product among their most exposed, ranked by how much it contributes to their overall index value.</p></div>
+      <div class="section-heading">
+        <p class="eyebrow">Product explorer</p>
+        <h2>See which countries are most affected by a product</h2>
+        <p>Choose a product code and an index family to see which countries have that product among their most exposed, ranked by how much it contributes to their overall index value.</p>
+      </div>
       <div class="control-card">
         <div class="control-group grow"><label for="productSelect">Product (HS code)</label><select id="productSelect"></select></div>
         <div class="control-group"><label for="productIndexSelect">Index</label><select id="productIndexSelect"><option value="ECI">ECI</option><option value="ICI">ICI</option><option value="CGI">CGI</option><option value="SGI">SGI</option></select></div>
@@ -122,7 +137,10 @@
     </section>
 
     <section class="section shell" id="downloads">
-      <div class="section-heading compact"><p class="eyebrow">Downloads and reproducibility</p><h2>Paper and underlying data</h2></div>
+      <div class="section-heading compact">
+        <p class="eyebrow">Downloads and reproducibility</p>
+        <h2>Paper and underlying data</h2>
+      </div>
       <div class="grid four"><a class="download-card" id="downloadPaperCard" href="paper/resettling_trade.pdf"><span>PDF</span><strong>Paper draft</strong><small id="downloadPaperVersion">June 2026 draft</small></a><a class="download-card" id="downloadDataCard" href="data/measures_panel.csv" download><span>CSV</span><strong>Current index values</strong><small>Country-level panel used by the explorer</small></a><a class="download-card" href="data/top_products_wide.csv" download><span>CSV</span><strong>Top products by country</strong><small>Top-ranked products per country, per index</small></a><a class="download-card" href="data/price_shocks_export.csv" download><span>CSV</span><strong>Price shocks by product</strong><small>Per-commodity price-shock estimates</small></a></div>
     </section>
   </main>
@@ -141,6 +159,6 @@
   </div>
 
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-  <script src="assets/app.js?v=20260908f"></script>
+  <script src="assets/app.js?v=20260908g"></script>
 </body>
 </html>
