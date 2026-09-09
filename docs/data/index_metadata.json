@@ -143,7 +143,7 @@
       "short_label": "ICI",
       "family": "Import competition",
       "unit": "% decline in domestic sales",
-      "description": "Equation (12). The predicted percentage decline in domestic sales of import-competing producers as redirected Chinese goods raise import penetration at home."
+      "description": "Equation (10). The predicted percentage decline in domestic sales of import-competing producers as redirected Chinese goods raise import penetration at home."
     },
     {
       "id": "ICI_long",
@@ -223,7 +223,7 @@
       "short_label": "ISI_prod",
       "family": "Import similarity",
       "unit": "similarity, 0-100",
-      "description": "Equation (10). Each product's market share for the country is computed over imports from all origins, not only from China. This captures cases where China suffers an excess supply in goods it was not already shipping to that country."
+      "description": "Appendix B.4.2. Each product's market share for the country is computed over imports from all origins, not only from China. This captures cases where China suffers an excess supply in goods it was not already shipping to that country."
     },
     {
       "id": "ISI_broad",
@@ -233,7 +233,7 @@
       "short_label": "ISI_broad",
       "family": "Import similarity",
       "unit": "similarity, 0-100",
-      "description": "Equation (11). Similarity between what a country imports from China and what China exports to all destinations, not just the U.S. It captures products where Chinese capacity has grown but direct U.S. exports were already constrained."
+      "description": "Appendix B.4.2. Similarity between what a country imports from China and what China exports to all destinations, not just the U.S. It captures products where Chinese capacity has grown but direct U.S. exports were already constrained."
     },
     {
       "id": "CGI",
@@ -243,7 +243,7 @@
       "short_label": "CGI",
       "family": "Consumer gains",
       "unit": "% decline in import prices",
-      "description": "Equation (14). The predicted percentage decline in the price of imported goods as cheaper Chinese supply is redirected into the country. Read it as a decline in import prices, not in the overall consumer price index: the effect on households depends on pass-through and on how much of consumption those imports represent."
+      "description": "Equation (12). The predicted percentage decline in the price of imported goods as cheaper Chinese supply is redirected into the country. Read it as a decline in import prices, not in the overall consumer price index: the effect on households depends on pass-through and on how much of consumption those imports represent."
     },
     {
       "id": "CGI_long",
@@ -313,7 +313,7 @@
       "short_label": "SGI",
       "family": "Sourcing gains",
       "unit": "% increase in exports",
-      "description": "Equation (15). The predicted percentage increase in a country's exports as cheaper Chinese intermediate inputs lower production costs at home."
+      "description": "Equation (13). The predicted percentage increase in a country's exports as cheaper Chinese intermediate inputs lower production costs at home."
     },
     {
       "id": "SGI_long",
