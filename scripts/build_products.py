@@ -69,6 +69,14 @@ PRICE_SHOCK_COLUMNS = [
 # product-level breakdown in this file.
 INDICES = ["ECI", "ICI", "CGI", "SGI"]
 TOP_N_PER_COUNTRY = 10
+
+# The indices measure third-country exposure, so the two protagonists are not
+# themselves exposed countries. data_merge_measures.R drops them from
+# measures_panel.csv, which keeps them out of the country panel, but
+# top_products_wide.csv has shipped with USA rows present, which put the United
+# States on the Product Explorer map. Exclude them here so the site does not
+# depend on the upstream file being filtered.
+EXCLUDE_COUNTRIES = {"CHN", "USA"}
 MISSING = {"", "NA", "NaN", "nan", "N/A", "."}
 
 
@@ -147,7 +155,7 @@ def main() -> int:
         reader = csv.DictReader(f)
         for row in reader:
             iso3 = (row.get("country_code") or "").strip().upper()
-            if len(iso3) != 3:
+            if len(iso3) != 3 or iso3 in EXCLUDE_COUNTRIES:
                 continue
             rank = to_number(row.get("rank"))
             if rank is None:
