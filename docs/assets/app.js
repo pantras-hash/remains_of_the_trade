@@ -1,0 +1,768 @@
+(() => {
+  const state = {
+    config: {},
+    metadata: {},
+    metaById: {},
+    countryNames: {},
+    rows: [],
+    columns: [],
+    indices: [],
+    selectedIndex: null,
+    selectedBase: null,
+    selectedCountry: null,
+    compareIndex: null,
+    topProductsByCountry: {},
+    productsIndex: [],
+    hsLabels: {},
+    priceShocksTable: [],
+    paperSample: null,
+    sample: 'paper',
+    selectedProduct: null,
+    countryProductIndex: 'ECI',
+    productIndex: 'ECI',
+    productMetric: 'share',
+    productCache: {}
+  };
+
+  const BASE_PRODUCT_INDICES = ['ECI', 'ICI', 'CGI', 'SGI'];
+  // Product the Explorer opens on. Falls back to the first available code if this
+  // one drops out of products_index.json on a rebuild.
+  const DEFAULT_PRODUCT = '851712';
+  // Country the profile section opens on. Falls back to the first row if this code
+  // is not in the panel.
+  const DEFAULT_COUNTRY = 'VNM';
+
+  // "Deciles" colours a country by which tenth of the distribution it falls in
+  // rather than by its value, so a long right tail cannot flatten the rest of the
+  // map into a single shade. The value is unchanged; only the colouring differs.
+  const DECILE_SCALE = 'Deciles';
+  const DECILES = 10;
+  // Plotly's own Viridis anchors, sampled here so the banded scale matches the
+  // continuous one rather than drifting from a separately hard-coded palette.
+  const VIRIDIS_STOPS = [
+    [0.0000, [68, 1, 84]],   [0.0627, [72, 24, 106]], [0.1255, [71, 45, 123]],
+    [0.1882, [66, 64, 134]], [0.2510, [59, 82, 139]], [0.3137, [51, 99, 141]],
+    [0.3765, [45, 112, 142]],[0.4392, [39, 128, 142]],[0.5020, [33, 145, 140]],
+    [0.5647, [31, 160, 136]],[0.6275, [40, 174, 128]],[0.6902, [64, 189, 114]],
+    [0.7529, [103, 204, 92]],[0.8157, [152, 216, 62]],[0.8784, [205, 225, 29]],
+    [1.0000, [253, 231, 37]]
+  ];
+
+  function viridisAt(t) {
+    const x = Math.min(1, Math.max(0, t));
+    for (let i = 1; i < VIRIDIS_STOPS.length; i++) {
+      const [p0, c0] = VIRIDIS_STOPS[i - 1];
+      const [p1, c1] = VIRIDIS_STOPS[i];
+      if (x <= p1) {
+        const f = p1 === p0 ? 0 : (x - p0) / (p1 - p0);
+        const ch = k => Math.round(c0[k] + f * (c1[k] - c0[k]));
+        return `rgb(${ch(0)}, ${ch(1)}, ${ch(2)})`;
+      }
+    }
+    return `rgb(${VIRIDIS_STOPS.at(-1)[1].join(', ')})`;
+  }
+
+  // Ten flat bands: each colour is repeated at both ends of its slice so Plotly
+  // steps between them instead of interpolating across the band.
+  function decileColorscale() {
+    const scale = [];
+    for (let k = 0; k < DECILES; k++) {
+      const colour = viridisAt((k + 0.5) / DECILES);
+      scale.push([k / DECILES, colour], [(k + 1) / DECILES, colour]);
+    }
+    return scale;
+  }
+
+  // Decile 1 is the lowest tenth, 10 the highest. Tied values share a decile,
+  // since they are counted by how many values fall strictly below them.
+  function decileValues(values) {
+    const n = values.length;
+    if (!n) return [];
+    const sorted = [...values].sort((a, b) => a - b);
+    return values.map(v => {
+      let lo = 0, hi = sorted.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] < v) lo = mid + 1; else hi = mid; }
+      return Math.min(DECILES, Math.floor(lo * DECILES / n) + 1);
+    });
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const isMissing = (value) => value === null || value === undefined || value === '' || String(value).trim().toUpperCase() === 'NA' || String(value).trim().toUpperCase() === 'NAN';
+  const rawToDisplay = (value) => isMissing(value) ? null : Number(value) * 100;
+  // Two decimals everywhere, matching the precision of the paper's tables
+  // (Table 1 reports ESI as 31.38, Table 3 reports ISI as 72.79).
+  const decimalsFor = () => 2;
+  const formatValue = (value, id) => {
+    if (isMissing(value) || Number.isNaN(Number(value))) return 'NA';
+    return rawToDisplay(value).toLocaleString(undefined, { maximumFractionDigits: decimalsFor(id), minimumFractionDigits: decimalsFor(id) });
+  };
+  const escapeHtml = (text) => String(text ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  const formatContribution = (value) => {
+    const scaled = value * 100;
+    if (scaled !== 0 && Math.abs(scaled) < 0.01) return scaled.toExponential(1);
+    return scaled.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  };
+
+  document.addEventListener('DOMContentLoaded', init);
+
+  async function init() {
+    bindNav();
+    try {
+      const [config, metadata, countryNames, csvText, topProductsByCountry, productsIndex, hsLabels, paperSample] = await Promise.all([
+        fetchJson('site_config.json'),
+        fetchJson('data/index_metadata.json'),
+        fetchJson('data/country_names.json'),
+        fetchText('data/measures_panel.csv'),
+        fetchJson('data/top_products_by_country.json').catch(() => ({})),
+        fetchJson('data/products_index.json').catch(() => []),
+        fetchJson('data/hs_labels.json').catch(() => ({})),
+        fetchJson('data/paper_sample.json').catch(() => null)
+      ]);
+      state.config = config || {};
+      state.metadata = metadata || { indices: [] };
+      state.countryNames = countryNames || {};
+      state.topProductsByCountry = topProductsByCountry || {};
+      state.productsIndex = productsIndex || [];
+      state.hsLabels = hsLabels || {};
+      state.paperSample = paperSample && Array.isArray(paperSample.iso3) ? paperSample : null;
+      // Without the membership file there is no paper sample to show, so fall back
+      // to the full panel rather than silently rendering an empty ranking.
+      if (!state.paperSample) state.sample = 'full';
+      state.metaById = Object.fromEntries((state.metadata.indices || []).map(m => [m.id, m]));
+      const parsed = parseCSV(csvText);
+      state.columns = parsed.headers;
+      state.rows = parsed.rows.map(row => normalizeRow(row));
+      state.indices = computeIndexList();
+      computeStats();
+      applyConfig();
+      populateControls();
+      bindEvents();
+      state.selectedIndex = chooseDefaultIndex();
+      state.selectedBase = baseOf(metaFor(state.selectedIndex));
+      state.compareIndex = chooseCompareIndex(state.selectedIndex);
+      state.selectedCountry = chooseDefaultCountry();
+      state.selectedProduct = state.productsIndex.includes(DEFAULT_PRODUCT) ? DEFAULT_PRODUCT : (state.productsIndex[0] || null);
+      $('indexSelect').value = state.selectedBase;
+      populateVariantSelect(state.selectedBase);
+      $('variantSelect').value = state.selectedIndex;
+      $('compareSelect').value = state.compareIndex;
+      $('countrySelect').value = state.selectedCountry;
+      populateProductSelect();
+      if (state.selectedProduct) $('productSelect').value = state.selectedProduct;
+      $('countryProductIndexSelect').value = state.countryProductIndex;
+      $('productIndexSelect').value = state.productIndex;
+      $('productMetricSelect').value = state.productMetric;
+      renderAll();
+    } catch (err) {
+      console.error(err);
+      showFatalError(err);
+    }
+  }
+
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Could not load ${url}`);
+    return res.json();
+  }
+  async function fetchText(url) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Could not load ${url}`);
+    return res.text();
+  }
+
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], cell = '', inQuotes = false;
+    const pushCell = () => { row.push(cell); cell = ''; };
+    const pushRow = () => {
+      if (row.length > 0 || cell.length > 0) {
+        pushCell();
+        if (row.some(v => v !== '')) rows.push(row);
+        row = [];
+      }
+    };
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const next = text[i + 1];
+      if (ch === '"') {
+        if (inQuotes && next === '"') { cell += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        pushCell();
+      } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+        if (ch === '\r' && next === '\n') i++;
+        pushRow();
+      } else {
+        cell += ch;
+      }
+    }
+    pushRow();
+    const headers = rows.shift().map(h => h.trim().replace(/^\uFEFF/, ''));
+    return { headers, rows: rows.map(cols => Object.fromEntries(headers.map((h, i) => [h, cols[i] ?? '']))) };
+  }
+
+  function normalizeRow(row) {
+    const iso3 = String(row.iso3 || '').trim().toUpperCase();
+    const normalized = { iso3, country: state.countryNames[iso3] || iso3, values: {}, stat: {} };
+    for (const id of state.columns) {
+      if (id === 'iso3') continue;
+      const raw = row[id];
+      normalized.values[id] = isMissing(raw) ? null : Number(raw);
+    }
+    return normalized;
+  }
+
+  function computeIndexList() {
+    const numericColumns = state.columns.filter(c => c !== 'iso3');
+    const metaOrder = (state.metadata.indices || []).map(m => m.id).filter(id => numericColumns.includes(id));
+    const extras = numericColumns.filter(id => !metaOrder.includes(id));
+    return [...metaOrder, ...extras].map(id => metaFor(id));
+  }
+
+  function metaFor(id) {
+    return state.metaById[id] || { id, label: id, short_label: id, family: 'Other', description: 'No description provided yet.', unit: 'index points' };
+  }
+
+  function computeStats() {
+    for (const meta of computeIndexList()) {
+      const id = meta.id;
+      const values = state.rows.map(row => ({ row, value: row.values[id] })).filter(d => d.value !== null && Number.isFinite(d.value));
+      const n = values.length;
+      values.forEach(({ row, value }) => {
+        const greater = values.filter(d => d.value > value).length;
+        row.stat[id] = { rank: greater + 1, n };
+      });
+    }
+  }
+
+  function applyConfig() {
+    const cfg = state.config;
+    document.title = `${cfg.title || 'The Remains of Trade'} | Exposure Indices`;
+    setText('siteTitle', cfg.title || 'The Remains of Trade');
+    setText('siteSubtitle', cfg.subtitle || 'Interactive exposure indices');
+    setText('siteAuthors', cfg.authors || '');
+    setText('footerAuthors', cfg.authors || '');
+    setText('downloadPaperVersion', cfg.paper_version || 'June 2026 draft');
+    setText('wipNotice', cfg.work_in_progress_note || 'Work in progress.');
+    ['paperLink', 'navPaperLink', 'downloadPaperCard'].forEach(id => { const el = $(id); if (el) el.href = cfg.paper_url || 'paper/resettling_trade.pdf'; });
+    ['dataLink', 'downloadDataCard'].forEach(id => { const el = $(id); if (el) el.href = cfg.data_url || 'data/measures_panel.csv'; });
+    setText('year', new Date().getFullYear().toString());
+  }
+
+  function setText(id, value) { const el = $(id); if (el) el.textContent = value; }
+
+  function populateControls() {
+    populateBaseSelect();
+    populateIndexSelect('compareSelect', state.indices);
+    const countrySelect = $('countrySelect');
+    countrySelect.innerHTML = state.rows.slice().sort((a, b) => a.country.localeCompare(b.country)).map(row => `<option value="${row.iso3}">${escapeHtml(row.country)} (${row.iso3})</option>`).join('');
+    renderDictionary();
+  }
+
+  function productLabel(code) {
+    const description = state.hsLabels[code];
+    return description ? `${code} — ${description}` : code;
+  }
+
+  function populateProductSelect() {
+    const select = $('productSelect');
+    if (!select) return;
+    select.innerHTML = state.productsIndex.map(code => `<option value="${escapeHtml(code)}">${escapeHtml(productLabel(code))}</option>`).join('');
+  }
+
+  // Each column belongs to a base index (ECI, ESI, ICI, ISI, CGI, SGI) and is one
+  // variant of it. The Index dropdown picks the base; the Variant dropdown picks
+  // the column. Columns without metadata fall back to the prefix before the first
+  // underscore, so a newly added column still lands under a sensible base.
+  function baseOf(meta) {
+    return meta.base || String(meta.id || '').split('_')[0] || 'Other';
+  }
+
+  function baseList() {
+    const available = new Set(state.indices.map(baseOf));
+    const declared = (state.metadata.families || []).filter(f => available.has(f.id));
+    const extras = [...available].filter(id => !declared.some(f => f.id === id)).sort().map(id => ({ id, label: id }));
+    return [...declared, ...extras];
+  }
+
+  function variantsFor(base) {
+    return state.indices.filter(meta => baseOf(meta) === base);
+  }
+
+  function populateBaseSelect() {
+    const select = $('indexSelect');
+    if (!select) return;
+    select.innerHTML = baseList().map(f => {
+      const text = f.label && f.label !== f.id ? `${f.label} (${f.id})` : f.id;
+      return `<option value="${escapeHtml(f.id)}">${escapeHtml(text)}</option>`;
+    }).join('');
+  }
+
+  function populateVariantSelect(base) {
+    const select = $('variantSelect');
+    // An older cached copy of this file has no variant support at all. If the page
+    // ever renders the Variant dropdown without it being filled, say so loudly
+    // rather than leaving the user with a dropdown that silently does nothing.
+    if (!select) { console.error('Variant dropdown missing from the page.'); return; }
+    const variants = variantsFor(base);
+    if (!variants.length) console.error(`No variants found for base index "${base}". Check base/variant fields in data/index_metadata.json.`);
+    select.innerHTML = variants.map(meta => `<option value="${escapeHtml(meta.id)}">${escapeHtml(`${meta.variant || meta.label || meta.id} (${meta.id})`)}</option>`).join('');
+    select.disabled = variants.length <= 1;
+  }
+
+  function populateIndexSelect(id, indices) {
+    const select = $(id);
+    const groups = [...new Set(indices.map(m => m.family || 'Other'))];
+    select.innerHTML = groups.map(group => {
+      const opts = indices.filter(m => (m.family || 'Other') === group).map(m => `<option value="${m.id}">${escapeHtml(m.label || m.id)}</option>`).join('');
+      return `<optgroup label="${escapeHtml(group)}">${opts}</optgroup>`;
+    }).join('');
+  }
+
+  function bindEvents() {
+    $('indexSelect').addEventListener('change', e => {
+      state.selectedBase = e.target.value;
+      const variants = variantsFor(state.selectedBase);
+      if (variants.length) state.selectedIndex = variants[0].id;
+      populateVariantSelect(state.selectedBase);
+      $('variantSelect').value = state.selectedIndex;
+      onSelectedIndexChanged();
+    });
+    $('variantSelect').addEventListener('change', e => {
+      state.selectedIndex = e.target.value;
+      onSelectedIndexChanged();
+    });
+    $('countrySelect').addEventListener('change', e => { state.selectedCountry = e.target.value; renderCountryPanel(); });
+    const countryProductIndexSelect = $('countryProductIndexSelect');
+    if (countryProductIndexSelect) countryProductIndexSelect.addEventListener('change', e => {
+      state.countryProductIndex = e.target.value;
+      renderCountryPanel();
+    });
+    bindDictionary();
+    $('scaleSelect').addEventListener('change', () => renderMap());
+    $('compareSelect').addEventListener('change', e => { state.compareIndex = e.target.value; renderScatter(); });
+    $('resetViewButton').addEventListener('click', () => renderMap());
+    $('downloadRankingsButton').addEventListener('click', downloadRankings);
+    document.querySelectorAll('.sample-tab').forEach(tab => tab.addEventListener('click', () => {
+      const next = tab.dataset.sample;
+      if (!next || next === state.sample) return;
+      if (next === 'paper' && !state.paperSample) return;
+      state.sample = next;
+      renderSampleTabs();
+      renderTopTable();
+      renderScatter();
+    }));
+    window.addEventListener('resize', debounce(() => { if (window.Plotly) { Plotly.Plots.resize('map'); Plotly.Plots.resize('scatter'); Plotly.Plots.resize('productMap'); } }, 120));
+    const productSelect = $('productSelect');
+    const productIndexSelect = $('productIndexSelect');
+    const productMetricSelect = $('productMetricSelect');
+    if (productSelect) productSelect.addEventListener('change', e => { state.selectedProduct = e.target.value; renderProductExplorer(); });
+    if (productIndexSelect) productIndexSelect.addEventListener('change', e => { state.productIndex = e.target.value; renderProductExplorer(); });
+    if (productMetricSelect) productMetricSelect.addEventListener('change', e => { state.productMetric = e.target.value; renderProductExplorer(); });
+  }
+
+  function onSelectedIndexChanged() {
+    if (state.compareIndex === state.selectedIndex) state.compareIndex = chooseCompareIndex(state.selectedIndex);
+    $('compareSelect').value = state.compareIndex;
+    renderAll();
+  }
+
+  function bindNav() {
+    const btn = $('navToggle');
+    const links = $('navLinks');
+    if (!btn || !links) return;
+    btn.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    });
+    links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { links.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }));
+  }
+
+  function chooseDefaultIndex() {
+    const id = state.metadata.default_index || 'ECI';
+    return state.indices.some(m => m.id === id) ? id : state.indices[0]?.id;
+  }
+  function chooseCompareIndex(id) {
+    const preferred = ['ESI', 'ICI', 'CGI', 'SGI', 'ISI'].find(x => x !== id && state.indices.some(m => m.id === x));
+    return preferred || state.indices.find(m => m.id !== id)?.id || id;
+  }
+  function chooseDefaultCountry() {
+    return state.rows.some(row => row.iso3 === DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : state.rows[0]?.iso3;
+  }
+  function valueFor(iso, id) {
+    const row = state.rows.find(r => r.iso3 === iso);
+    return row && row.values[id] !== null ? row.values[id] : null;
+  }
+
+  function renderAll() {
+    const meta = metaFor(state.selectedIndex);
+    setText('mapTitle', meta.label);
+    setText('mapSubtitle', meta.unit ? `Units: ${meta.unit}. ${meta.description || ''}`.trim() : (meta.description || 'Hover over a country for details.'));
+    renderMap();
+    renderCountryPanel();
+    renderSampleTabs();
+    renderTopTable();
+    renderScatter();
+    renderProductExplorer();
+    renderPriceShocksTable();
+  }
+
+  function renderMap() {
+    if (!window.Plotly) { $('map').innerHTML = '<p class="muted">Plotly did not load. Check your internet connection or bundle Plotly locally.</p>'; return; }
+    const id = state.selectedIndex;
+    const meta = metaFor(id);
+    const records = state.rows.filter(row => row.values[id] !== null && Number.isFinite(row.values[id]));
+    const values = records.map(row => rawToDisplay(row.values[id]));
+    const scale = $('scaleSelect').value;
+    const banded = scale === DECILE_SCALE;
+    const pct = meta.unit && meta.unit.startsWith('%') ? '%' : '';
+    const label = escapeHtml(meta.short_label || id);
+
+    const trace = {
+      type: 'choropleth', locationmode: 'ISO-3',
+      locations: records.map(row => row.iso3),
+      text: records.map(row => row.country),
+      reversescale: false,
+      marker: { line: { color: 'rgba(255,255,255,0.55)', width: 0.4 } }
+    };
+
+    if (banded) {
+      const deciles = decileValues(values);
+      trace.z = deciles;
+      // Each decile sits at an integer, so the band around it spans +/- 0.5.
+      trace.zmin = 0.5;
+      trace.zmax = DECILES + 0.5;
+      trace.colorscale = decileColorscale();
+      trace.customdata = records.map((row, i) => [row.stat[id].rank, row.stat[id].n, values[i]]);
+      trace.colorbar = {
+        title: { text: `${meta.short_label || id}<br>(decile)`, side: 'right' },
+        thickness: 13, len: 0.70,
+        tickmode: 'array',
+        tickvals: Array.from({ length: DECILES }, (_, k) => k + 1),
+        ticktext: Array.from({ length: DECILES }, (_, k) => k === 0 ? '1 (lowest)' : (k === DECILES - 1 ? `${DECILES} (highest)` : String(k + 1)))
+      };
+      trace.hovertemplate = `<b>%{text}</b><br>${label}: %{customdata[2]:.2f}${pct}<br>Decile: %{z} of ${DECILES}<br>Rank: %{customdata[0]} of %{customdata[1]}<extra></extra>`;
+    } else {
+      trace.z = values;
+      trace.colorscale = scale;
+      trace.customdata = records.map(row => [row.stat[id].rank, row.stat[id].n]);
+      trace.colorbar = { title: { text: meta.unit ? `${meta.short_label || id}<br>(${meta.unit})` : (meta.short_label || id), side: 'right' }, thickness: 13, len: 0.70 };
+      trace.hovertemplate = `<b>%{text}</b><br>${label}: %{z:.2f}${pct}<br>Rank: %{customdata[0]} of %{customdata[1]}<extra></extra>`;
+    }
+    const data = [trace];
+    const layout = {
+      margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      geo: { projection: { type: 'natural earth' }, showframe: false, showcoastlines: false, showland: true, landcolor: '#edf1f5', bgcolor: 'rgba(0,0,0,0)' }
+    };
+    const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['select2d', 'lasso2d'] };
+    Plotly.newPlot('map', data, layout, config).then(() => {
+      const map = $('map');
+      if (map.removeAllListeners) map.removeAllListeners('plotly_click');
+      if (map.on) map.on('plotly_click', ev => {
+        const iso = ev.points?.[0]?.location;
+        if (!iso) return;
+        state.selectedCountry = iso;
+        $('countrySelect').value = iso;
+        renderCountryPanel();
+        document.getElementById('country')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  // The country profile reports only the four headline channels. Variants and the
+  // similarity indices live in the by-index explorer and the data dictionary.
+  function renderCountryPanel() {
+    const row = state.rows.find(r => r.iso3 === state.selectedCountry) || state.rows[0];
+    if (!row) return;
+    state.selectedCountry = row.iso3;
+    setText('countryProfileName', row.country);
+    setText('countryProfileCode', row.iso3);
+    const wrap = $('countryIndexSummary');
+    if (wrap) {
+      wrap.innerHTML = BASE_PRODUCT_INDICES.map(id => {
+        const meta = metaFor(id);
+        const stat = row.stat[id];
+        const family = (meta.family || '').replace(/^./, c => c.toUpperCase());
+        return `<article class="index-summary-card">
+          <p class="index-summary-tag">${escapeHtml(id)}</p>
+          <h4>${escapeHtml(family || meta.label || id)}</h4>
+          <p class="index-summary-value">${formatValue(row.values[id], id)}</p>
+          <p class="index-summary-unit">${escapeHtml(meta.unit || '')}</p>
+          <p class="index-summary-rank">Rank <strong>${stat ? stat.rank : 'NA'}</strong>${stat ? ` of ${stat.n}` : ''}</p>
+        </article>`;
+      }).join('');
+    }
+    renderTopProducts(row, state.countryProductIndex);
+  }
+
+  function renderTopProducts(row, id) {
+    const wrap = $('topProductsWrap');
+    if (!wrap) return;
+    const meta = metaFor(id);
+    const tbody = $('topProductsTable').querySelector('tbody');
+    setText('topProductsHeading', `Top products for ${row.country} (${id})`);
+    const entries = (state.topProductsByCountry[row.iso3] || {})[id] || [];
+    if (!entries.length) {
+      setText('topProductsCaption', `No product breakdown is available for ${row.country} under ${id}.`);
+      tbody.innerHTML = '<tr><td colspan="4" class="muted">No product-level data for this country and index.</td></tr>';
+      return;
+    }
+    setText('topProductsCaption', `Products contributing most to ${row.country}'s ${meta.label || id}.`);
+    tbody.innerHTML = entries.map(e =>
+      `<tr><td>${e.rank}</td><td>${escapeHtml(e.commodity)} <span class="muted">${escapeHtml(state.hsLabels[e.commodity] || '')}</span></td><td>${e.share === null ? 'NA' : e.share.toFixed(2) + '%'}</td><td>${e.contribution === null ? 'NA' : formatContribution(e.contribution)}</td></tr>`
+    ).join('');
+  }
+
+  // The paper restricts every table and correlation to 110 economies. The map and
+  // country panel still show the full panel; the rankings and the scatter below
+  // follow whichever sample is selected.
+  function sampleIsoSet() {
+    if (state.sample !== 'paper' || !state.paperSample) return null;
+    return new Set(state.paperSample.iso3);
+  }
+
+  function sampleRows() {
+    const keep = sampleIsoSet();
+    return keep ? state.rows.filter(row => keep.has(row.iso3)) : state.rows;
+  }
+
+  function sampleLabel() {
+    return state.sample === 'paper' ? (state.paperSample?.label || 'Paper sample') : 'Full sample';
+  }
+
+  // Ranks are only meaningful relative to a stated sample, so recompute them
+  // within the selected one rather than reusing the full-panel ranks.
+  function rankedRows(id) {
+    return sampleRows().filter(row => row.values[id] !== null && Number.isFinite(row.values[id])).sort((a, b) => b.values[id] - a.values[id] || a.country.localeCompare(b.country));
+  }
+
+  function renderTopTable() {
+    const id = state.selectedIndex;
+    const ranked = rankedRows(id);
+    const rows = ranked.slice(0, 20);
+    $('topTableCaption').textContent = `Highest values for ${metaFor(id).label}. ${sampleLabel()}, ${ranked.length} economies ranked.`;
+    $('topTable').querySelector('tbody').innerHTML = rows.map((row, i) => {
+      return `<tr class="clickable" data-iso="${row.iso3}"><td>${i + 1}</td><td>${escapeHtml(row.country)} <span class="muted">${row.iso3}</span></td><td>${formatValue(row.values[id], id)}</td></tr>`;
+    }).join('');
+    $('topTable').querySelectorAll('tr[data-iso]').forEach(tr => tr.addEventListener('click', () => {
+      state.selectedCountry = tr.dataset.iso;
+      $('countrySelect').value = state.selectedCountry;
+      renderCountryPanel();
+      document.querySelector('#country').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+
+  function renderScatter() {
+    const xId = state.selectedIndex;
+    const yId = state.compareIndex;
+    const rows = sampleRows().filter(row => row.values[xId] !== null && row.values[yId] !== null);
+    renderCorrelationStats(rows, xId, yId);
+    if (!window.Plotly) { $('scatter').innerHTML = '<p class="muted">Plotly did not load.</p>'; return; }
+    const data = [{
+      type: 'scatter', mode: 'markers', x: rows.map(row => rawToDisplay(row.values[xId])), y: rows.map(row => rawToDisplay(row.values[yId])),
+      text: rows.map(row => row.country), customdata: rows.map(row => row.iso3), marker: { size: 9, opacity: 0.75, line: { width: 0.5, color: '#ffffff' } },
+      hovertemplate: '<b>%{text}</b><br>%{x:.2f}<br>%{y:.2f}<extra></extra>'
+    }];
+    const layout = { margin: { l: 56, r: 12, t: 8, b: 50 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', xaxis: { title: metaFor(xId).short_label || xId, zeroline: false }, yaxis: { title: metaFor(yId).short_label || yId, zeroline: false } };
+    Plotly.newPlot('scatter', data, layout, { responsive: true, displaylogo: false }).then(() => {
+      const scatter = $('scatter');
+      if (scatter.removeAllListeners) scatter.removeAllListeners('plotly_click');
+      if (scatter.on) scatter.on('plotly_click', ev => {
+        const iso = ev.points?.[0]?.customdata;
+        if (!iso) return;
+        state.selectedCountry = iso;
+        $('countrySelect').value = iso;
+        renderCountryPanel();
+        document.getElementById('country')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function pearsonCorrelation(xs, ys) {
+    const n = xs.length;
+    const xMean = xs.reduce((a, b) => a + b, 0) / n;
+    const yMean = ys.reduce((a, b) => a + b, 0) / n;
+    let cov = 0, xVar = 0, yVar = 0;
+    for (let i = 0; i < n; i++) { const dx = xs[i] - xMean, dy = ys[i] - yMean; cov += dx * dy; xVar += dx * dx; yVar += dy * dy; }
+    return (xVar === 0 || yVar === 0) ? null : cov / Math.sqrt(xVar * yVar);
+  }
+
+  function ranksWithTies(values) {
+    const order = values.map((v, i) => i).sort((a, b) => values[a] - values[b]);
+    const ranks = new Array(values.length);
+    let i = 0;
+    while (i < order.length) {
+      let j = i;
+      while (j + 1 < order.length && values[order[j + 1]] === values[order[i]]) j++;
+      const avgRank = (i + j) / 2 + 1;
+      for (let k = i; k <= j; k++) ranks[order[k]] = avgRank;
+      i = j + 1;
+    }
+    return ranks;
+  }
+
+  function renderCorrelationStats(rows, xId, yId) {
+    const n = rows.length;
+    if (n < 2) { setText('pearsonValue', 'NA'); setText('spearmanValue', 'NA'); return; }
+    const xs = rows.map(row => row.values[xId]);
+    const ys = rows.map(row => row.values[yId]);
+    const pearson = pearsonCorrelation(xs, ys);
+    const spearman = pearsonCorrelation(ranksWithTies(xs), ranksWithTies(ys));
+    // Three decimals: the paper quotes correlations at this precision, and near-zero
+    // values (ISI vs ISI_broad at -0.005) are meaningless when rounded to two.
+    setText('pearsonValue', pearson === null ? 'NA' : pearson.toFixed(3));
+    setText('spearmanValue', spearman === null ? 'NA' : spearman.toFixed(3));
+  }
+
+  async function renderProductExplorer() {
+    const mapEl = $('productMap');
+    if (!mapEl) return;
+    const commodity = state.selectedProduct;
+    const idx = state.productIndex;
+    const metric = state.productMetric;
+    const metricLabel = metric === 'share' ? 'Share' : 'Contribution';
+    if (!commodity) { mapEl.innerHTML = '<p class="muted">Choose a product to see affected countries.</p>'; return; }
+    setText('productMapTitle', `Most affected countries (${productLabel(commodity)})`);
+    setText('productMapSubtitle', `${metricLabel} of ${idx} explained by this product. Hover over a country for details.`);
+    let entries;
+    try {
+      const families = await loadProductFile(commodity);
+      if (state.selectedProduct !== commodity || state.productIndex !== idx || state.productMetric !== metric) return;
+      entries = (families || {})[idx] || [];
+    } catch (err) {
+      mapEl.innerHTML = '<p class="muted">Could not load data for this product.</p>';
+      return;
+    }
+    if (!entries.length) { mapEl.innerHTML = '<p class="muted">No countries have this product among their top-ranked products for this index.</p>'; return; }
+    if (!window.Plotly) { mapEl.innerHTML = '<p class="muted">Plotly did not load. Check your internet connection or bundle Plotly locally.</p>'; return; }
+    mapEl.innerHTML = '';
+    const zvals = entries.map(e => metric === 'share' ? e.share : (e.contribution === null ? null : e.contribution * 100));
+    const data = [{
+      type: 'choropleth', locationmode: 'ISO-3', locations: entries.map(e => e.iso3), z: zvals,
+      text: entries.map(e => state.countryNames[e.iso3] || e.iso3),
+      customdata: entries.map(e => [e.rank]),
+      colorscale: 'Viridis', reversescale: false, marker: { line: { color: 'rgba(255,255,255,0.55)', width: 0.4 } },
+      colorbar: { title: { text: metric === 'share' ? 'Share (%)' : metricLabel, side: 'right' }, thickness: 13, len: 0.70 },
+      hovertemplate: metric === 'share'
+        ? `<b>%{text}</b><br>Share: %{z:.2f}%<br>Rank in country: %{customdata[0]}<extra></extra>`
+        : `<b>%{text}</b><br>Contribution: %{z:.4f}<br>Rank in country: %{customdata[0]}<extra></extra>`
+    }];
+    const layout = {
+      margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      geo: { projection: { type: 'natural earth' }, showframe: false, showcoastlines: false, showland: true, landcolor: '#edf1f5', bgcolor: 'rgba(0,0,0,0)' }
+    };
+    const config = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['select2d', 'lasso2d'] };
+    Plotly.newPlot('productMap', data, layout, config);
+  }
+
+  async function loadProductFile(commodity) {
+    if (state.productCache[commodity]) return state.productCache[commodity];
+    const data = await fetchJson(`data/products/${encodeURIComponent(commodity)}.json`);
+    state.productCache[commodity] = data;
+    return data;
+  }
+
+  const formatSigFigs = (value, digits = 3) => value === null || value === undefined ? 'NA' : Number(value).toLocaleString(undefined, { maximumSignificantDigits: digits });
+
+  let priceShocksTablePromise = null;
+  async function renderPriceShocksTable() {
+    const table = $('priceShocksTable');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!state.priceShocksTable.length) {
+      if (!priceShocksTablePromise) priceShocksTablePromise = fetchJson('data/price_shocks_table.json').catch(() => []);
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading price shocks…</td></tr>';
+      state.priceShocksTable = await priceShocksTablePromise;
+      if (!state.priceShocksTable.length) { tbody.innerHTML = '<tr><td colspan="6" class="muted">Could not load price shock data.</td></tr>'; return; }
+    }
+    tbody.innerHTML = state.priceShocksTable.map((e, i) => `<tr class="clickable" data-commodity="${escapeHtml(e.commodity)}"><td>${i + 1}</td><td>${escapeHtml(e.commodity)}</td><td>${escapeHtml(e.description || '')}</td><td>${formatSigFigs(e.phi_cup)}</td><td>${formatSigFigs(e.tariff_delta)}</td><td>${formatSigFigs(e.price_shock)}</td></tr>`).join('');
+    tbody.querySelectorAll('tr[data-commodity]').forEach(tr => tr.addEventListener('click', () => {
+      state.selectedProduct = tr.dataset.commodity;
+      $('productSelect').value = state.selectedProduct;
+      renderProductExplorer();
+      $('productMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+  }
+
+  function renderSampleTabs() {
+    document.querySelectorAll('.sample-tab').forEach(tab => {
+      const active = tab.dataset.sample === state.sample;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    const paperTab = $('sampleTabPaper');
+    if (paperTab) {
+      if (!state.paperSample) { paperTab.disabled = true; paperTab.title = 'Sample membership file not available.'; }
+      else paperTab.textContent = `${state.paperSample.label || 'Paper sample'} (${state.paperSample.count || state.paperSample.iso3.length})`;
+    }
+    const fullTab = $('sampleTabFull');
+    if (fullTab) fullTab.textContent = `Full sample (${state.rows.length})`;
+    const note = $('sampleNote');
+    if (note) {
+      note.textContent = state.sample === 'paper'
+        ? (state.paperSample?.criteria || 'The sample used throughout the paper.')
+        : `Every economy in the panel, including those the paper excludes. Rankings and correlations here will not match the published tables.`;
+    }
+  }
+
+  // The dictionary is a hidden panel rather than a page section, opened from the
+  // links scattered through the sections that reference index definitions.
+  function bindDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    document.querySelectorAll('[data-open-dictionary]').forEach(link => link.addEventListener('click', e => {
+      e.preventDefault();
+      openDictionary();
+    }));
+    $('dictClose')?.addEventListener('click', closeDictionary);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeDictionary(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.hidden) closeDictionary(); });
+    // Deep link support. The hash can also arrive after load (an in-page anchor, or
+    // a client that applies it post-navigation), so watch for it changing too.
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#data-dictionary') openDictionary();
+    });
+    if (location.hash === '#data-dictionary') openDictionary();
+  }
+
+  function openDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.classList.add('dict-open');
+    $('dictClose')?.focus();
+  }
+
+  function closeDictionary() {
+    const overlay = $('dictOverlay');
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.body.classList.remove('dict-open');
+    if (location.hash === '#data-dictionary') history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  function renderDictionary() {
+    const tbody = $('dictionaryTable').querySelector('tbody');
+    tbody.innerHTML = state.indices.map(meta => `<tr><td><strong>${escapeHtml(meta.id)}</strong><br><span class="muted">${escapeHtml(meta.label || meta.id)}</span></td><td>${escapeHtml(meta.family || 'Other')}</td><td>${escapeHtml(meta.unit || '')}</td><td>${escapeHtml(meta.description || '')}</td></tr>`).join('');
+  }
+
+  function downloadRankings() {
+    const id = state.selectedIndex;
+    const header = ['rank', 'iso3', 'country', 'value_raw', 'value_display_x100', 'sample'];
+    const lines = [header.join(',')];
+    rankedRows(id).forEach((row, i) => {
+      const values = [i + 1, row.iso3, csvEscape(row.country), row.values[id], rawToDisplay(row.values[id]), state.sample];
+      lines.push(values.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${id}_rankings_${state.sample}_sample.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function csvEscape(value) { const s = String(value ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
+  function showFatalError(err) {
+    const target = $('explorer') || document.body;
+    target.insertAdjacentHTML('afterbegin', `<div class="shell card"><h3>Could not load the site data</h3><p>${escapeHtml(err.message || err)}</p><p>For local previews, use <code>python -m http.server</code> rather than opening <code>index.html</code> directly.</p></div>`);
+  }
+})();

@@ -1,0 +1,314 @@
+# The Remains of Trade - GitHub Pages data explorer
+
+This repository is a static website for the country-level exposure indices developed in the paper:
+
+**The Remains of Trade: The U.S.-China Trade War and its Aftermath**  
+Pol Antràs, Adrian Kulesza, and Andrea F. Presbitero
+
+The site is designed for GitHub Pages. It does not require a server or a build system. The interactive maps and charts are generated in the browser from one CSV file.
+
+## What is included
+
+```text
+docs/
+  index.html                        Website page
+  site_config.json                  Site title, paper/data links, version note
+  assets/styles.css                 Visual styling
+  assets/app.js                     Interactive map, country profile, rankings, scatter plot, product explorer, CSV parsing
+  assets/favicon.svg                Small site icon
+  data/measures_panel.csv           Current country-level index values
+  data/index_metadata.json          Base index, variant, labels, and descriptions for each column
+  data/country_names.json           ISO3-to-country-name lookup table
+  data/paper_sample.json            The 110 ISO3 codes making up the paper's sample
+  data/top_products_wide.csv        Source data: top-ranked products per country per index (not fetched by the site directly)
+  data/price_shocks_export.csv      Source data: per-commodity price shock estimates (not fetched by the site directly)
+  data/hs6_descriptions.csv         Source data: HS6 product code -> description lookup (not fetched by the site directly)
+  data/top_products_by_country.json Generated: top 10 products per country, per index (used by the country panel)
+  data/products_index.json          Generated: list of selectable product codes for the Product Explorer
+  data/products/<code>.json         Generated: one small file per product listing its most affected countries
+  data/hs_labels.json               Generated: product code -> description lookup, filtered to codes used on the site
+  data/price_shocks_table.json      Generated: one row per commodity with a price-shock estimate, for the price-shock reference table
+  paper/resettling_trade.pdf        Paper PDF linked from the site
+scripts/
+  check_data.py                     Simple CSV and metadata validator
+  build_products.py                 Builds the product-explorer JSON files from top_products_wide.csv, price_shocks_export.csv, and hs6_descriptions.csv
+README.md                           This file
+```
+
+## Where the data comes from
+
+The three source files are produced by the empirics pipeline and copied in from
+`~/Dropbox/Trade_China_shock_2.0/Empirics/Final/`:
+
+| Source file | Copied to |
+|---|---|
+| `measures_panel.csv` | `docs/data/measures_panel.csv` |
+| `top_products_wide.csv` | `docs/data/top_products_wide.csv` |
+| `price_shock.csv` | `docs/data/price_shocks_export.csv` |
+
+Note the third rename. The site keeps the name `price_shocks_export.csv`, which is
+what `scripts/build_products.py`, the download card, and this README refer to.
+
+`docs/data/hs6_descriptions.csv` comes from `Empirics/Data/raw/` and changes rarely.
+
+## Local preview
+
+Do not double-click `docs/index.html`, because browsers often block local `fetch()` calls from ordinary files. Instead, run a tiny local server from the repository root:
+
+```bash
+python -m http.server 8000 --directory docs
+```
+
+Then open this address in a browser:
+
+```text
+http://localhost:8000
+```
+
+The map and scatter plot use Plotly from a CDN, so the browser needs internet access. The rest of the page and the data files are local.
+
+## Create the GitHub website
+
+### Option A: using GitHub's web interface
+
+1. Go to GitHub and create a new repository under `pantras-hash`, for example `resettling-trade`.
+2. Unzip this package on your computer.
+3. Upload the contents of the unzipped folder to the new repository. Make sure the repository contains the `docs` folder, the `scripts` folder, and this `README.md` at the top level.
+4. In the repository, go to **Settings** -> **Pages**.
+5. Under **Build and deployment**, choose **Deploy from a branch**.
+6. Select branch **main** and folder **/docs**.
+7. Click **Save**.
+8. After GitHub finishes publishing, the site should be available at something like:
+
+```text
+https://pantras-hash.github.io/remains_of_the_trade/
+```
+
+### Option B: using Git on your computer
+
+After creating the empty repository on GitHub, run the following from the unzipped folder:
+
+```bash
+git init
+git add .
+git commit -m "Initial data explorer"
+git branch -M main
+git remote add origin https://github.com/pantras-hash/resettling-trade.git
+git push -u origin main
+```
+
+Then enable GitHub Pages from **Settings** -> **Pages** -> **Deploy from a branch** -> **main** -> **/docs**.
+
+## Updating the data later
+
+The site reads the CSV directly every time the page loads. No Python build step is needed.
+
+1. Replace this file with your updated data:
+
+```text
+docs/data/measures_panel.csv
+```
+
+2. Keep the country-code column named exactly:
+
+```text
+iso3
+```
+
+3. Any other numeric column will automatically appear in the index dropdown.
+4. If you add, drop, or rename columns, edit:
+
+```text
+docs/data/index_metadata.json
+```
+
+This file controls the labels, grouping, and descriptions. Give every new column a
+`base` and a `variant` so it appears under the right index in the Explorer's two
+dropdowns. A column with no metadata entry still works, but it falls back to the
+prefix before its first underscore and shows its raw name.
+
+5. Validate the updated data locally:
+
+```bash
+python scripts/check_data.py
+```
+
+6. Commit and push the changes:
+
+```bash
+git add docs/data/measures_panel.csv docs/data/index_metadata.json docs/data/country_names.json
+git commit -m "Update exposure indices"
+git push
+```
+
+GitHub Pages will update automatically, usually within a minute or two.
+
+## Updating the product-level data
+
+Unlike `measures_panel.csv`, the Product Explorer and country top-products
+table are not read directly from their source CSVs at page load. Instead, a
+build script pre-computes small JSON files ahead of time, because
+`top_products_wide.csv` is far too large (tens of MB) to fetch in the
+browser.
+
+1. Replace the source files as needed:
+
+```text
+docs/data/top_products_wide.csv     top-ranked products per country, per index
+docs/data/price_shocks_export.csv   per-commodity price-shock estimates (source: price_shock.csv)
+docs/data/hs6_descriptions.csv      HS6 code -> description lookup
+```
+
+2. Regenerate the derived JSON files:
+
+```bash
+python scripts/build_products.py
+```
+
+This only keeps commodities that have a non-missing `price_shock` in
+`price_shocks_export.csv`, and writes:
+
+```text
+docs/data/top_products_by_country.json
+docs/data/products_index.json
+docs/data/hs_labels.json
+docs/data/price_shocks_table.json
+docs/data/products/<code>.json
+```
+
+3. Commit and push the source CSVs and the regenerated JSON/products files.
+
+## Cache-busting when you change app.js or styles.css
+
+GitHub Pages serves everything with `cache-control: max-age=600` and no content
+hashing. The HTML and the assets expire independently, so a returning visitor can end
+up with a new `index.html` and a stale cached `app.js`. When those two disagree the
+page looks broken in confusing ways, for example the Variant dropdown rendering but
+never filling in.
+
+To avoid that, `docs/index.html` loads both assets with a version query:
+
+```html
+<link rel="stylesheet" href="assets/styles.css?v=20260907b">
+<script src="assets/app.js?v=20260907b"></script>
+```
+
+**Bump both version strings whenever you edit `app.js` or `styles.css`.** Any new value
+works; a date plus a letter is easy to read. Data files under `data/` do not need this,
+because `app.js` already fetches them with `cache: 'no-store'`.
+
+If someone reports the site behaving oddly after a deploy, have them hard-reload
+(Cmd/Ctrl + Shift + R) to confirm it is a stale asset before looking for a real bug.
+
+## Updating the paper
+
+Replace the PDF while keeping the same filename:
+
+```text
+docs/paper/resettling_trade.pdf
+```
+
+If you want to use a different filename, also edit `docs/site_config.json` and change the `paper_url` field.
+
+## Editing visible website text
+
+For light edits, use these files:
+
+- `docs/site_config.json`: title, subtitle, authors, paper version, paper link, data link, and work-in-progress note.
+- `docs/data/index_metadata.json`: base indices, variant labels, and descriptions.
+- `docs/index.html`: methodology cards, download cards, and page structure.
+- `docs/assets/styles.css`: colors, spacing, typography, and layout.
+
+## How the Explorer's index selector works
+
+The Explorer has two linked dropdowns. **Index** picks one of the six base indices
+(ECI, ESI, ICI, ISI, CGI, SGI). **Variant** picks the specific column within that
+base. Both are driven by `docs/data/index_metadata.json`:
+
+- The `families` array defines the six base indices and the order they appear in.
+- Each entry in `indices` carries a `base` (which family it belongs to) and a
+  `variant` (its label in the Variant dropdown, for example `Baseline` or
+  `Long tariff window`).
+- Variants appear in the order they are listed in `indices`. The first variant of a
+  base is what the Explorer selects when you switch to that base, so keep
+  `Baseline` first.
+
+If a CSV column has no metadata entry, the site falls back to the text before the
+first underscore as its base, so a stray `ECI_newthing` column still lands under
+ECI with its raw name as the variant label.
+
+The `*_coverage` columns are trade-coverage shares rather than exposure measures.
+They appear as a `Trade coverage` variant inside their parent index, so the Index
+dropdown stays limited to the six substantive indices.
+
+## Page structure
+
+The page runs in this order:
+
+1. **Methodology** - the four channels the paper distinguishes, and how to read ranks.
+2. **Explore by index** (`#explorer`) - index, variant and colour-scale pickers over a
+   full-width world map. Clicking a country jumps to its profile below.
+3. **Explore by country** (`#country`) - a country picker, the four headline channels
+   (ECI, ICI, CGI, SGI) with value, units and rank, then a top-products table with its
+   own index selector. Variants and the similarity indices deliberately do not appear
+   here; they belong to the by-index explorer and the data dictionary.
+4. **Rankings and comparisons** (`#rankings`) - top economies and the scatter, with the
+   paper/full sample tab.
+5. **Product explorer** (`#products`) - which economies a given product most affects.
+6. **Downloads** (`#downloads`).
+
+The **data dictionary** is not a section. It is a hidden overlay opened by the
+`See the data dictionary` links in the by-index, by-country and rankings sections, or
+by loading `#data-dictionary` directly. It closes on Escape, on the close button, or by
+clicking outside the panel. Any link with a `data-open-dictionary` attribute opens it,
+so new links need no extra JavaScript.
+
+## Country samples
+
+The panel carries every economy for which the indices can be computed (224). The
+paper restricts all of its tables and correlations to a smaller sample of 110. The
+Rankings and comparisons section has a tab to switch between them:
+
+- **Paper sample (110)** is the default. The top-economies table, the scatter, the
+  correlation readouts, and the rankings download all reproduce the published
+  numbers exactly.
+- **Full sample** shows every economy in the panel. Rankings and correlations here
+  will *not* match the paper, and the page says so.
+
+The membership list lives in `docs/data/paper_sample.json`, generated from
+`measures_panel_select_coverage.csv`. It cannot be derived from the shipped CSV alone:
+the paper drops China, the U.S., Hong Kong SAR, Macao SAR and a list of small states,
+then keeps economies whose ECI, ICI, CGI and SGI coverage all reach 25 percent.
+Filtering on coverage alone yields 118, not 110.
+
+Regenerate it whenever the sample changes:
+
+```bash
+python - <<'EOF'
+import csv, json
+src = "<path to>/measures_panel_select_coverage.csv"
+iso = sorted(r["iso3"].strip().upper() for r in csv.DictReader(open(src, encoding="utf-8-sig")))
+doc = json.load(open("docs/data/paper_sample.json"))
+doc["iso3"], doc["count"] = iso, len(iso)
+json.dump(doc, open("docs/data/paper_sample.json", "w"), ensure_ascii=False, indent=2)
+EOF
+```
+
+The map, the country panel, and the Product Explorer always show the full panel; only
+the Rankings section follows the tab. Ranks are recomputed within whichever sample is
+selected, since a rank is only meaningful relative to a stated sample.
+
+## Rank convention
+
+For each selected index:
+
+- Rank 1 is the highest observed value.
+- Countries with missing values are excluded from the ranking for that index.
+- The website displays values as the raw CSV value multiplied by 100, at two decimal places, matching the paper's tables.
+- Correlations are shown to three decimals, because near-zero values carry meaning here (ISI against ISI_broad is -0.005).
+
+## Notes and limitations
+
+- Country mapping is based on ISO3 codes. If you add a new non-standard code, add it to `docs/data/country_names.json`.
+- Plotly's built-in choropleth recognizes most ISO3 codes, but some territories or special entities may not appear on the map even though they remain available in tables and downloads.
+- The site is fully static. It is easy to host on GitHub Pages, but it does not support user accounts, server-side search, or private data.

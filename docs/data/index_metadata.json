@@ -1,0 +1,359 @@
+{
+  "schema_version": 3,
+  "rank_rule": "Rank 1 is the highest observed value for the selected index.",
+  "default_index": "ECI",
+  "families": [
+    {
+      "id": "ECI",
+      "label": "Export competition",
+      "description": "Chinese exports displaced from the U.S. are redirected to other markets, eroding the exports of a third-country sharing those other markets."
+    },
+    {
+      "id": "ESI",
+      "label": "Export similarity",
+      "description": "How closely a country's export basket resembles China's."
+    },
+    {
+      "id": "ICI",
+      "label": "Import competition",
+      "description": "Redirected Chinese goods raise import penetration at home, squeezing domestic import-competing producers."
+    },
+    {
+      "id": "ISI",
+      "label": "Import similarity",
+      "description": "How closely a country's imports from China resemble what the U.S. imports from China."
+    },
+    {
+      "id": "CGI",
+      "label": "Consumer gains",
+      "description": "Cheaper Chinese imports lower the prices buyers in the destination market pay."
+    },
+    {
+      "id": "SGI",
+      "label": "Sourcing gains",
+      "description": "Cheaper Chinese intermediate inputs cut production costs and strengthen downstream competitiveness."
+    }
+  ],
+  "indices": [
+    {
+      "id": "ECI",
+      "base": "ECI",
+      "variant": "Baseline",
+      "label": "Export Competition Index (ECI)",
+      "short_label": "ECI",
+      "family": "Export competition",
+      "unit": "% decline in exports",
+      "description": "Equation (7). The predicted percentage decline in a country's exports to markets outside the U.S. and China, caused by cheaper Chinese competition there."
+    },
+    {
+      "id": "ECI_prod",
+      "base": "ECI",
+      "variant": "Product-level aggregation",
+      "label": "Export Competition Index, product-level (ECI_prod)",
+      "short_label": "ECI_prod",
+      "family": "Export competition",
+      "unit": "% decline in exports",
+      "description": "Equation (8). A coarser version that aggregates across destinations. It better captures a shock large enough to push Chinese exports into destinations where China sold relatively little in the baseline year."
+    },
+    {
+      "id": "ECI_long",
+      "base": "ECI",
+      "variant": "Long tariff window",
+      "label": "Export Competition Index, long window (ECI_long)",
+      "short_label": "ECI_long",
+      "family": "Export competition",
+      "unit": "% decline in exports",
+      "description": "The baseline index rebuilt with market shares from 2017 and tariff changes measured from January 2018 to September 2025."
+    },
+    {
+      "id": "ECI_basic",
+      "base": "ECI",
+      "variant": "Basic price shock",
+      "label": "Export Competition Index, basic shock (ECI_basic)",
+      "short_label": "ECI_basic",
+      "family": "Export competition",
+      "unit": "% decline in exports",
+      "description": "The baseline index with the model-implied price shock replaced by China's baseline export share to the U.S. and all other elasticities dropped."
+    },
+    {
+      "id": "ECI_basic_full",
+      "base": "ECI",
+      "variant": "Basic shock, full coverage",
+      "label": "Export Competition Index, basic shock and full coverage (ECI_basic_full)",
+      "short_label": "ECI_basic_full",
+      "family": "Export competition",
+      "unit": "% decline in exports",
+      "description": "The basic-shock variant extended to every product, rather than only the products for which the full model-implied shock is available."
+    },
+    {
+      "id": "ECI_coverage",
+      "base": "ECI",
+      "variant": "Trade coverage",
+      "label": "Export Competition Index, trade coverage (ECI_coverage)",
+      "short_label": "ECI_coverage",
+      "family": "Export competition",
+      "unit": "% of trade covered",
+      "description": "Diagnostic, not an exposure measure. The share of the country's relevant trade accounted for by products that enter the export competition index."
+    },
+    {
+      "id": "ESI",
+      "base": "ESI",
+      "variant": "Baseline",
+      "label": "Export Similarity Index (ESI)",
+      "short_label": "ESI",
+      "family": "Export similarity",
+      "unit": "similarity, 0-100",
+      "description": "Equation (2). The Finger-Kreinin overlap between a country's exports and China's, computed across product and destination cells outside the U.S. and China."
+    },
+    {
+      "id": "ESI_alt",
+      "base": "ESI",
+      "variant": "Destination-weighted",
+      "label": "Export Similarity Index, destination-weighted (ESI_alt)",
+      "short_label": "ESI_alt",
+      "family": "Export similarity",
+      "unit": "similarity, 0-100",
+      "description": "An export-weighted average of destination-specific similarity indices, rather than a single sum over product-destination cells."
+    },
+    {
+      "id": "ESI_prod",
+      "base": "ESI",
+      "variant": "Product composition only",
+      "label": "Export Similarity Index, products only (ESI_prod)",
+      "short_label": "ESI_prod",
+      "family": "Export similarity",
+      "unit": "similarity, 0-100",
+      "description": "Similarity in the types of products a country exports, regardless of where they are sold."
+    },
+    {
+      "id": "ESI_dest",
+      "base": "ESI",
+      "variant": "Destination composition only",
+      "label": "Export Similarity Index, destinations only (ESI_dest)",
+      "short_label": "ESI_dest",
+      "family": "Export similarity",
+      "unit": "similarity, 0-100",
+      "description": "Similarity in where a country sells, regardless of which goods it sells there."
+    },
+    {
+      "id": "ICI",
+      "base": "ICI",
+      "variant": "Baseline",
+      "label": "Import Competition Index (ICI)",
+      "short_label": "ICI",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "Equation (10). The predicted percentage decline in domestic sales of import-competing producers as redirected Chinese goods raise import penetration at home."
+    },
+    {
+      "id": "ICI_long",
+      "base": "ICI",
+      "variant": "Long tariff window",
+      "label": "Import Competition Index, long window (ICI_long)",
+      "short_label": "ICI_long",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "The baseline index rebuilt with market shares from 2017 and tariff changes measured from January 2018 to September 2025."
+    },
+    {
+      "id": "ICI_basic",
+      "base": "ICI",
+      "variant": "Basic price shock",
+      "label": "Import Competition Index, basic shock (ICI_basic)",
+      "short_label": "ICI_basic",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "The baseline index with the model-implied price shock replaced by China's baseline export share to the U.S. and all other elasticities dropped."
+    },
+    {
+      "id": "ICI_basic_full",
+      "base": "ICI",
+      "variant": "Basic shock, full coverage",
+      "label": "Import Competition Index, basic shock and full coverage (ICI_basic_full)",
+      "short_label": "ICI_basic_full",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "The basic-shock variant extended to every product, rather than only the products for which the full model-implied shock is available."
+    },
+    {
+      "id": "ICI_upstream",
+      "base": "ICI",
+      "variant": "Intermediate inputs",
+      "label": "Import Competition Index, intermediate inputs (ICI_upstream)",
+      "short_label": "ICI_upstream",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "The index restricted to intermediate inputs, meaning products with an upstreamness measure above 2. This is the competitive pressure on domestic producers of inputs, the mirror image of the sourcing gains their downstream users enjoy."
+    },
+    {
+      "id": "ICI_downstream",
+      "base": "ICI",
+      "variant": "Final goods",
+      "label": "Import Competition Index, final goods (ICI_downstream)",
+      "short_label": "ICI_downstream",
+      "family": "Import competition",
+      "unit": "% decline in domestic sales",
+      "description": "The index restricted to final goods, meaning products with an upstreamness measure below 2. This is the competitive pressure on domestic producers selling close to final demand."
+    },
+    {
+      "id": "ICI_coverage",
+      "base": "ICI",
+      "variant": "Trade coverage",
+      "label": "Import Competition Index, trade coverage (ICI_coverage)",
+      "short_label": "ICI_coverage",
+      "family": "Import competition",
+      "unit": "% of trade covered",
+      "description": "Diagnostic, not an exposure measure. The share of the country's relevant trade accounted for by products that enter the import competition index."
+    },
+    {
+      "id": "ISI",
+      "base": "ISI",
+      "variant": "Baseline",
+      "label": "Import Similarity Index (ISI)",
+      "short_label": "ISI",
+      "family": "Import similarity",
+      "unit": "similarity, 0-100",
+      "description": "Equation (9). The overlap between what a country imports from China and what the U.S. imports from China, in the 2023 baseline year."
+    },
+    {
+      "id": "ISI_prod",
+      "base": "ISI",
+      "variant": "All-origin market shares",
+      "label": "Import Similarity Index, all-origin shares (ISI_prod)",
+      "short_label": "ISI_prod",
+      "family": "Import similarity",
+      "unit": "similarity, 0-100",
+      "description": "Appendix B.4.2. Each product's market share for the country is computed over imports from all origins, not only from China. This captures cases where China suffers an excess supply in goods it was not already shipping to that country."
+    },
+    {
+      "id": "ISI_broad",
+      "base": "ISI",
+      "variant": "China's global export basket",
+      "label": "Import Similarity Index, China's global basket (ISI_broad)",
+      "short_label": "ISI_broad",
+      "family": "Import similarity",
+      "unit": "similarity, 0-100",
+      "description": "Appendix B.4.2. Similarity between what a country imports from China and what China exports to all destinations, not just the U.S. It captures products where Chinese capacity has grown but direct U.S. exports were already constrained."
+    },
+    {
+      "id": "CGI",
+      "base": "CGI",
+      "variant": "Baseline",
+      "label": "Consumer Gains Index (CGI)",
+      "short_label": "CGI",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "Equation (12). The predicted percentage decline in the price of imported goods as cheaper Chinese supply is redirected into the country. Read it as a decline in import prices, not in the overall consumer price index: the effect on households depends on pass-through and on how much of consumption those imports represent."
+    },
+    {
+      "id": "CGI_long",
+      "base": "CGI",
+      "variant": "Long tariff window",
+      "label": "Consumer Gains Index, long window (CGI_long)",
+      "short_label": "CGI_long",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "The baseline index rebuilt with market shares from 2017 and tariff changes measured from January 2018 to September 2025."
+    },
+    {
+      "id": "CGI_basic",
+      "base": "CGI",
+      "variant": "Basic price shock",
+      "label": "Consumer Gains Index, basic shock (CGI_basic)",
+      "short_label": "CGI_basic",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "The baseline index with the model-implied price shock replaced by China's baseline export share to the U.S. and all other elasticities dropped."
+    },
+    {
+      "id": "CGI_basic_full",
+      "base": "CGI",
+      "variant": "Basic shock, full coverage",
+      "label": "Consumer Gains Index, basic shock and full coverage (CGI_basic_full)",
+      "short_label": "CGI_basic_full",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "The basic-shock variant extended to every product, rather than only the products for which the full model-implied shock is available."
+    },
+    {
+      "id": "CGI_upstream",
+      "base": "CGI",
+      "variant": "Intermediate inputs",
+      "label": "Consumer Gains Index, intermediate inputs (CGI_upstream)",
+      "short_label": "CGI_upstream",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "The index restricted to intermediate inputs, meaning products with an upstreamness measure above 2. Here the immediate beneficiaries are firms buying cheaper inputs rather than consumers."
+    },
+    {
+      "id": "CGI_downstream",
+      "base": "CGI",
+      "variant": "Final goods",
+      "label": "Consumer Gains Index, final goods (CGI_downstream)",
+      "short_label": "CGI_downstream",
+      "family": "Consumer gains",
+      "unit": "% decline in import prices",
+      "description": "The index restricted to final goods, meaning products with an upstreamness measure below 2, where cheaper Chinese imports translate most directly into lower consumer prices."
+    },
+    {
+      "id": "CGI_coverage",
+      "base": "CGI",
+      "variant": "Trade coverage",
+      "label": "Consumer Gains Index, trade coverage (CGI_coverage)",
+      "short_label": "CGI_coverage",
+      "family": "Consumer gains",
+      "unit": "% of trade covered",
+      "description": "Diagnostic, not an exposure measure. The share of the country's relevant trade accounted for by products that enter the consumer gains index."
+    },
+    {
+      "id": "SGI",
+      "base": "SGI",
+      "variant": "Baseline",
+      "label": "Sourcing Gains Index (SGI)",
+      "short_label": "SGI",
+      "family": "Sourcing gains",
+      "unit": "% increase in exports",
+      "description": "Equation (13). The predicted percentage increase in a country's exports as cheaper Chinese intermediate inputs lower production costs at home."
+    },
+    {
+      "id": "SGI_long",
+      "base": "SGI",
+      "variant": "Long tariff window",
+      "label": "Sourcing Gains Index, long window (SGI_long)",
+      "short_label": "SGI_long",
+      "family": "Sourcing gains",
+      "unit": "% increase in exports",
+      "description": "The baseline index rebuilt with market shares from 2017 and tariff changes measured from January 2018 to September 2025."
+    },
+    {
+      "id": "SGI_basic",
+      "base": "SGI",
+      "variant": "Basic price shock",
+      "label": "Sourcing Gains Index, basic shock (SGI_basic)",
+      "short_label": "SGI_basic",
+      "family": "Sourcing gains",
+      "unit": "% increase in exports",
+      "description": "The baseline index with the model-implied price shock replaced by China's baseline export share to the U.S. and all other elasticities dropped."
+    },
+    {
+      "id": "SGI_basic_full",
+      "base": "SGI",
+      "variant": "Basic shock, full coverage",
+      "label": "Sourcing Gains Index, basic shock and full coverage (SGI_basic_full)",
+      "short_label": "SGI_basic_full",
+      "family": "Sourcing gains",
+      "unit": "% increase in exports",
+      "description": "The basic-shock variant extended to every product, rather than only the products for which the full model-implied shock is available."
+    },
+    {
+      "id": "SGI_coverage",
+      "base": "SGI",
+      "variant": "Trade coverage",
+      "label": "Sourcing Gains Index, trade coverage (SGI_coverage)",
+      "short_label": "SGI_coverage",
+      "family": "Sourcing gains",
+      "unit": "% of trade covered",
+      "description": "Diagnostic, not an exposure measure. The share of the country's relevant trade accounted for by products that enter the sourcing gains index."
+    }
+  ]
+}
